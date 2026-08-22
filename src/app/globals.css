@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 20% 97%;
+    --foreground: 240 10% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 12%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 20% 95%;
+    --secondary-foreground: 240 10% 20%;
+    --muted: 240 15% 95%;
+    --muted-foreground: 240 8% 46%;
+    --accent: 244 90% 96%;
+    --accent-foreground: 243 75% 40%;
+    --destructive: 4 78% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 16% 90%;
+    --input: 240 16% 88%;
+    --ring: 243 75% 59%;
+    --radius: 0.85rem;
+
+    --sidebar: 240 30% 8%;
+    --sidebar-foreground: 240 15% 88%;
+    --sidebar-muted: 240 12% 58%;
+    --sidebar-active: 243 75% 59%;
+    --sidebar-border: 240 25% 16%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  ::selection {
+    background-color: hsl(var(--primary) / 0.18);
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .bg-noise {
+    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.035) 1px, transparent 0);
+    background-size: 22px 22px;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 999px;
+  }
+}
