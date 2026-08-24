@@ -8,7 +8,7 @@ function randomInt(min: number, max: number) {
 }
 
 async function main() {
-  const adminName = process.env.SEED_ADMIN_NAME ?? "Admin Vértice Create";
+  const adminName = process.env.SEED_ADMIN_NAME ?? "Admin Vertix";
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@verticecreate.com";
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "troque-esta-senha";
 

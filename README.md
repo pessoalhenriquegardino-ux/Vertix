@@ -1,4 +1,4 @@
-# Vértice Create — CRM de Acompanhamento de Clientes
+# Vertix — CRM de Acompanhamento de Clientes
 
 MVP de CRM/dashboard multi-tenant para agência de marketing digital: cada cliente
 (tenant) vê só os próprios dados; o ADMIN (agência) vê e gerencia todos.

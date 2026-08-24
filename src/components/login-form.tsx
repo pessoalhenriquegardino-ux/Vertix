@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Sparkles, TrendingUp, KanbanSquare, Megaphone } from "lucide-react";
+import { TrendingUp, KanbanSquare, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LogoMark } from "@/components/brand/logo-mark";
 
 const HIGHLIGHTS = [
   { icon: TrendingUp, text: "Pipeline de leads e investimento em um só lugar" },
@@ -46,10 +47,8 @@ export function LoginForm() {
           style={{ background: "radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)" }}
         />
         <div className="relative flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-active">
-            <Sparkles className="h-[18px] w-[18px] text-white" strokeWidth={2.5} />
-          </div>
-          <span className="text-[15px] font-semibold tracking-tight text-white">Vértice Create</span>
+          <LogoMark className="h-9 w-9" />
+          <span className="text-[17px] font-semibold tracking-tight text-white">Vertix</span>
         </div>
 
         <div className="relative space-y-8">
@@ -76,17 +75,15 @@ export function LoginForm() {
           </div>
         </div>
 
-        <p className="relative text-[11px] text-sidebar-muted">© {new Date().getFullYear()} Vértice Create</p>
+        <p className="relative text-[11px] text-sidebar-muted">© {new Date().getFullYear()} Vertix</p>
       </div>
 
       <div className="flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm space-y-8">
           <div className="space-y-1.5 lg:hidden">
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Sparkles className="h-4 w-4 text-white" strokeWidth={2.5} />
-              </div>
-              <span className="text-sm font-semibold">Vértice Create</span>
+              <LogoMark className="h-8 w-8" />
+              <span className="text-sm font-semibold">Vertix</span>
             </div>
           </div>
 

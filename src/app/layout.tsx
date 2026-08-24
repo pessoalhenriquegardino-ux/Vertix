@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -11,8 +11,16 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Vértice Create — CRM",
-  description: "Acompanhamento de clientes e campanhas — Vértice Create",
+  title: {
+    default: "Vertix",
+    template: "%s · Vertix",
+  },
+  description: "Pipeline, campanhas e CRM em um só lugar — Vertix",
+  applicationName: "Vertix",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#4338CA",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

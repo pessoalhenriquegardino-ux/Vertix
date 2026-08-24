@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut, PanelLeftClose, PanelLeftOpen, Sparkles } from "lucide-react";
+import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LogoMark } from "@/components/brand/logo-mark";
 
 export type SidebarItem = {
   href: string;
@@ -46,12 +47,10 @@ export function Sidebar({
       )}
     >
       <div className={cn("flex items-center gap-2.5 px-5 py-6", collapsed && "justify-center px-0")}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-active shadow-[0_0_0_1px_rgba(255,255,255,0.08)]">
-          <Sparkles className="h-4 w-4 text-white" strokeWidth={2.5} />
-        </div>
+        <LogoMark className="h-8 w-8 shrink-0 shadow-[0_0_0_1px_rgba(255,255,255,0.08)]" />
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate text-[13px] font-semibold tracking-tight text-white">Vértice Create</p>
+            <p className="truncate text-[13px] font-semibold tracking-tight text-white">Vertix</p>
             <p className="truncate text-[11px] text-sidebar-muted">CRM de performance</p>
           </div>
         )}

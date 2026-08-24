@@ -38,7 +38,7 @@ export default async function AdminClientsPage() {
       <PageHeader
         eyebrow="Agência"
         title="Clientes"
-        description="Gerencie os clientes atendidos pela Vértice Create"
+        description="Gerencie os clientes atendidos pela Vertix"
         actions={
           <LinkButton href="/admin/clients/new">
             <Plus className="mr-1.5 h-4 w-4" /> Novo cliente
