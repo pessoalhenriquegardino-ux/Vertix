@@ -17,7 +17,7 @@ export default async function CampaignImportPage({ params }: { params: { id: str
       <PageHeader
         eyebrow="Campanhas"
         title={`Importar CSV de campanhas — ${client.name}`}
-        description="Exporte do Meta Ads Manager e ajuste as colunas para o formato esperado."
+        description="Exporte qualquer relatório de campanhas do Meta Ads Manager e suba direto — o sistema identifica as colunas sozinho."
       />
       <CampaignCsvImportForm clientId={client.id} />
     </div>
