@@ -10,6 +10,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
+import { DeleteClientButton } from "@/components/admin/delete-client-button";
 
 export default async function EditClientPage({ params }: { params: { id: string } }) {
   const client = await prisma.client.findUnique({
@@ -93,6 +94,15 @@ export default async function EditClientPage({ params }: { params: { id: string 
         </CardHeader>
         <CardContent>
           <UserForm action={boundCreateUser} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base text-destructive">Zona de risco</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DeleteClientButton clientId={client.id} clientName={client.name} />
         </CardContent>
       </Card>
     </div>

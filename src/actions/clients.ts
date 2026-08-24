@@ -65,3 +65,11 @@ export async function updateClient(clientId: string, _prevState: ActionState, fo
   revalidatePath(`/admin/clients/${clientId}`);
   return { error: undefined };
 }
+
+// Exclui o cliente e tudo que está ligado a ele (usuários, métricas de
+// pipeline/campanhas, leads e cadência) — a exclusão é definitiva.
+export async function deleteClient(clientId: string) {
+  await requireAdmin();
+  await prisma.client.delete({ where: { id: clientId } });
+  revalidatePath("/admin/clients");
+}

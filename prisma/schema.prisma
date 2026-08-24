@@ -40,7 +40,7 @@ model User {
   passwordHash String
   role         Role
   clientId     String? // null quando role = ADMIN
-  client       Client?  @relation(fields: [clientId], references: [id])
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 
   @@index([clientId])
@@ -63,7 +63,7 @@ model Client {
 model DailyMetric {
   id     String @id @default(cuid())
   clientId String
-  client Client @relation(fields: [clientId], references: [id])
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   date   DateTime // dia de referência do dado (meia-noite UTC)
 
   adSpend         Decimal @default(0) @db.Decimal(12, 2) // valor gasto de campanha no dia
@@ -94,7 +94,7 @@ model DailyMetric {
 model CampaignMetric {
   id           String   @id @default(cuid())
   clientId     String
-  client       Client   @relation(fields: [clientId], references: [id])
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   date         DateTime // dia de referência (meia-noite UTC)
   campaignName String   @default("Geral")
 
@@ -150,7 +150,7 @@ enum ActivityOutcome {
 model Lead {
   id       String    @id @default(cuid())
   clientId String
-  client   Client    @relation(fields: [clientId], references: [id])
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   name  String
   phone String?
@@ -162,12 +162,17 @@ model Lead {
   assignedToUserId String?
   notes            String?
 
+  // id do lead na origem (ex.: Meta Lead Ads) — usado para não duplicar
+  // quando o mesmo export/período é importado mais de uma vez.
+  externalId String?
+
   createdByUserId String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   activities LeadActivity[]
 
+  @@unique([clientId, externalId])
   @@index([clientId, stage])
 }
 
