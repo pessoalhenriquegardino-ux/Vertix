@@ -21,6 +21,7 @@ import {
 import { STAGES, STAGE_LABELS, ACTIVITY_LABELS, type Stage, type PendingCadence } from "@/lib/leads";
 import { updateLeadStage } from "@/actions/leads";
 import { Badge } from "@/components/ui/badge";
+import { WonValueDialog } from "@/components/crm/won-value-dialog";
 import { cn, formatCurrencyBRL, formatDateBR } from "@/lib/utils";
 
 export type KanbanLead = {
@@ -65,6 +66,7 @@ export function KanbanBoard({ leads, leadBasePath }: { leads: KanbanLead[]; lead
   const router = useRouter();
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<Stage | null>(null);
+  const [wonDialogLead, setWonDialogLead] = useState<KanbanLead | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleDrop(stage: Stage) {
@@ -72,13 +74,42 @@ export function KanbanBoard({ leads, leadBasePath }: { leads: KanbanLead[]; lead
     if (!dragging) return;
     const leadId = dragging;
     setDragging(null);
+
+    if (stage === "WON") {
+      const lead = leads.find((l) => l.id === leadId);
+      if (lead) {
+        setWonDialogLead(lead);
+        return;
+      }
+    }
+
     startTransition(async () => {
       await updateLeadStage(leadId, stage);
       router.refresh();
     });
   }
 
+  function confirmWon(value: number) {
+    if (!wonDialogLead) return;
+    const leadId = wonDialogLead.id;
+    startTransition(async () => {
+      await updateLeadStage(leadId, "WON", value);
+      setWonDialogLead(null);
+      router.refresh();
+    });
+  }
+
   return (
+    <>
+    {wonDialogLead && (
+      <WonValueDialog
+        leadName={wonDialogLead.name}
+        defaultValue={wonDialogLead.value}
+        submitting={isPending}
+        onConfirm={confirmWon}
+        onCancel={() => setWonDialogLead(null)}
+      />
+    )}
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {STAGES.map((stage) => {
         const stageLeads = leads.filter((l) => l.stage === stage);
@@ -173,5 +204,6 @@ export function KanbanBoard({ leads, leadBasePath }: { leads: KanbanLead[]; lead
         );
       })}
     </div>
+    </>
   );
 }

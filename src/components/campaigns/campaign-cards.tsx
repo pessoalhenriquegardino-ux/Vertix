@@ -20,11 +20,15 @@ export function CampaignCards({
   prevTotals,
   cpa,
   prevCpa,
+  roas,
+  prevRoas,
 }: {
   totals: CampaignTotals;
   prevTotals: CampaignTotals;
   cpa: number | null;
   prevCpa: number | null;
+  roas: number | null;
+  prevRoas: number | null;
 }) {
   const cards: { label: string; value: string; current: number; previous: number; invert?: boolean; icon: LucideIcon; tint: string }[] = [
     { label: "Gasto total", value: formatCurrencyBRL(totals.amountSpent), current: totals.amountSpent, previous: prevTotals.amountSpent, invert: true, icon: Wallet, tint: "bg-indigo-50 text-indigo-600" },
@@ -59,26 +63,47 @@ export function CampaignCards({
         })}
       </div>
 
-      <Card className="border-primary/25 bg-gradient-to-br from-accent to-card">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-primary/80">CPA médio por contrato fechado</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <p className="tabular-nums text-2xl font-semibold tracking-tight text-foreground">
-            {cpa === null ? "—" : formatCurrencyBRL(cpa)}
-          </p>
-          {cpa === null ? (
-            <span className="text-xs text-muted-foreground">
-              Nenhum &quot;Sucesso&quot; registrado no pipeline neste período.
-            </span>
-          ) : (
-            <ChangeLabel current={cpa} previous={prevCpa ?? 0} invert />
-          )}
-          <p className="text-xs text-muted-foreground">
-            Gasto total em campanhas ÷ leads marcados como &quot;Sucesso&quot; no pipeline do período.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Card className="border-primary/25 bg-gradient-to-br from-accent to-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-primary/80">CPA médio por contrato fechado</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="tabular-nums text-2xl font-semibold tracking-tight text-foreground">
+              {cpa === null ? "—" : formatCurrencyBRL(cpa)}
+            </p>
+            {cpa === null ? (
+              <span className="text-xs text-muted-foreground">
+                Nenhum lead marcado como &quot;Sucesso&quot; no CRM neste período.
+              </span>
+            ) : (
+              <ChangeLabel current={cpa} previous={prevCpa ?? 0} invert />
+            )}
+            <p className="text-xs text-muted-foreground">
+              Gasto total em campanhas ÷ leads marcados como &quot;Sucesso&quot; no CRM do período.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-emerald-700">ROAS (retorno sobre o investimento)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="tabular-nums text-2xl font-semibold tracking-tight text-foreground">
+              {roas === null ? "—" : `${roas.toFixed(2)}x`}
+            </p>
+            {roas === null ? (
+              <span className="text-xs text-muted-foreground">Sem gasto ou sem receita fechada no período.</span>
+            ) : (
+              <ChangeLabel current={roas} previous={prevRoas ?? 0} />
+            )}
+            <p className="text-xs text-muted-foreground">
+              Receita dos leads &quot;Sucesso&quot; (valor do negócio) ÷ gasto total em campanhas.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

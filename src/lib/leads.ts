@@ -100,6 +100,26 @@ export function computeLeadsKpis(leads: { stage: Stage; value: number | null }[]
   };
 }
 
+// Leads marcados como "Sucesso" (fechados) num período — fonte de verdade
+// para CPA (custo por contrato) e ROAS (receita ÷ gasto) nas Campanhas.
+export async function getWonLeadsStats(clientId: string, range: { from: Date; to: Date }) {
+  const endInclusive = new Date(range.to);
+  endInclusive.setUTCHours(23, 59, 59, 999);
+
+  // usa updatedAt (não createdAt): representa quando o lead foi marcado como
+  // fechado, não quando entrou no funil — é o que faz sentido pra CPA/ROAS
+  // do período.
+  const won = await prisma.lead.findMany({
+    where: { clientId, stage: "WON", updatedAt: { gte: range.from, lte: endInclusive } },
+    select: { value: true },
+  });
+
+  return {
+    count: won.length,
+    revenue: won.reduce((a, l) => a + (l.value ? Number(l.value) : 0), 0),
+  };
+}
+
 export async function getLeadDetail(leadId: string) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },

@@ -25,7 +25,7 @@ export function DashboardView({
       <PageHeader
         eyebrow="Pipeline"
         title={clientName}
-        description="Acompanhamento diário de leads e investimento em campanhas"
+        description="Funil de leads (CRM) e investimento em campanhas — dados em tempo real"
         actions={
           <>
             {extraHeader}

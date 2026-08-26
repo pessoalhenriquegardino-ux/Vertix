@@ -56,7 +56,10 @@ export async function createLead(
 
 const stageEnum = z.enum(STAGES);
 
-export async function updateLeadStage(leadId: string, stage: string) {
+// value: só relevante ao mover para WON — é o valor do contrato fechado,
+// usado no cálculo de receita/ROAS nas Campanhas. Se omitido ao mover pra
+// WON, o valor do lead não é alterado (fica o que já tinha, ou vazio).
+export async function updateLeadStage(leadId: string, stage: string, value?: number) {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) throw new Error("Lead não encontrado.");
 
@@ -67,7 +70,10 @@ export async function updateLeadStage(leadId: string, stage: string) {
 
   await prisma.lead.update({
     where: { id: leadId },
-    data: { stage: parsedStage.data },
+    data: {
+      stage: parsedStage.data,
+      ...(parsedStage.data === "WON" && typeof value === "number" && value >= 0 ? { value } : {}),
+    },
   });
 
   revalidatePath(`/crm`);

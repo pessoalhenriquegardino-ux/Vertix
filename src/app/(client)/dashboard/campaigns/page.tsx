@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getClientById } from "@/lib/clients";
-import { resolvePeriod, previousPeriod, getMetricsInRange, sumTotals } from "@/lib/metrics";
+import { resolvePeriod, previousPeriod } from "@/lib/metrics";
 import { getCampaignDashboardData } from "@/lib/campaign-metrics";
 import { CampaignView } from "@/components/campaigns/campaign-view";
 
@@ -21,14 +21,7 @@ export default async function ClientCampaignsPage({
   const range = resolvePeriod(searchParams.from, searchParams.to);
   const prevRange = previousPeriod(range);
 
-  const [pipelineRows, prevPipelineRows] = await Promise.all([
-    getMetricsInRange(client.id, range),
-    getMetricsInRange(client.id, prevRange),
-  ]);
-  const leadsWon = sumTotals(pipelineRows).leadsWon;
-  const prevLeadsWon = sumTotals(prevPipelineRows).leadsWon;
-
-  const data = await getCampaignDashboardData(client.id, range, prevRange, leadsWon, prevLeadsWon);
+  const data = await getCampaignDashboardData(client.id, range, prevRange);
 
   return <CampaignView basePath="/dashboard/campaigns" range={range} data={data} />;
 }

@@ -24,7 +24,7 @@ export function CampaignView({
       <PageHeader
         eyebrow="Campanhas"
         title="Performance de mídia paga"
-        description="Métricas de anúncios (impressões, cliques, CTR, CPA) no período"
+        description="Métricas de anúncios (impressões, cliques, CTR, CPA, ROAS) no período"
         actions={
           <>
             {extraHeader}
@@ -33,7 +33,14 @@ export function CampaignView({
         }
       />
 
-      <CampaignCards totals={data.totals} prevTotals={data.prevTotals} cpa={data.cpa} prevCpa={data.prevCpa} />
+      <CampaignCards
+        totals={data.totals}
+        prevTotals={data.prevTotals}
+        cpa={data.cpa}
+        prevCpa={data.prevCpa}
+        roas={data.roas}
+        prevRoas={data.prevRoas}
+      />
 
       <Card>
         <CardHeader>

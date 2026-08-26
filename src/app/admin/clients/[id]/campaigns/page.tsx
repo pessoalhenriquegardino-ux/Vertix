@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Plus, Upload } from "lucide-react";
 import { getClientById } from "@/lib/clients";
-import { resolvePeriod, previousPeriod, getMetricsInRange, sumTotals } from "@/lib/metrics";
+import { resolvePeriod, previousPeriod } from "@/lib/metrics";
 import { getCampaignDashboardData } from "@/lib/campaign-metrics";
 import { CampaignView } from "@/components/campaigns/campaign-view";
 import { AdminClientHeader } from "@/components/admin/admin-client-header";
@@ -20,14 +20,7 @@ export default async function AdminClientCampaignsPage({
   const range = resolvePeriod(searchParams.from, searchParams.to);
   const prevRange = previousPeriod(range);
 
-  const [pipelineRows, prevPipelineRows] = await Promise.all([
-    getMetricsInRange(client.id, range),
-    getMetricsInRange(client.id, prevRange),
-  ]);
-  const leadsWon = sumTotals(pipelineRows).leadsWon;
-  const prevLeadsWon = sumTotals(prevPipelineRows).leadsWon;
-
-  const data = await getCampaignDashboardData(client.id, range, prevRange, leadsWon, prevLeadsWon);
+  const data = await getCampaignDashboardData(client.id, range, prevRange);
 
   return (
     <div className="space-y-6">

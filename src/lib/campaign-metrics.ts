@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { toDateInputValue } from "@/lib/utils";
 import type { PeriodRange } from "@/lib/metrics";
+import { getWonLeadsStats } from "@/lib/leads";
 
 export type CampaignRow = {
   id: string;
@@ -94,17 +95,25 @@ export function groupCampaignRowsByDate(rows: CampaignRow[]) {
     });
 }
 
-export async function getCampaignDashboardData(clientId: string, range: PeriodRange, prevRange: PeriodRange, leadsWon: number, prevLeadsWon: number) {
-  const [rows, prevRows] = await Promise.all([
+// CPA e ROAS vêm dos leads reais marcados como "Sucesso" no CRM (não de
+// lançamento manual) — assim fecho um lead no Kanban e o número aqui reflete
+// isso automaticamente.
+export async function getCampaignDashboardData(clientId: string, range: PeriodRange, prevRange: PeriodRange) {
+  const [rows, prevRows, won, prevWon] = await Promise.all([
     getCampaignMetricsInRange(clientId, range),
     getCampaignMetricsInRange(clientId, prevRange),
+    getWonLeadsStats(clientId, range),
+    getWonLeadsStats(clientId, prevRange),
   ]);
 
   const totals = sumCampaignTotals(rows);
   const prevTotals = sumCampaignTotals(prevRows);
 
-  const cpa = leadsWon > 0 ? totals.amountSpent / leadsWon : null;
-  const prevCpa = prevLeadsWon > 0 ? prevTotals.amountSpent / prevLeadsWon : null;
+  const cpa = won.count > 0 ? totals.amountSpent / won.count : null;
+  const prevCpa = prevWon.count > 0 ? prevTotals.amountSpent / prevWon.count : null;
+
+  const roas = totals.amountSpent > 0 ? won.revenue / totals.amountSpent : null;
+  const prevRoas = prevTotals.amountSpent > 0 ? prevWon.revenue / prevTotals.amountSpent : null;
 
   return {
     rows,
@@ -113,5 +122,9 @@ export async function getCampaignDashboardData(clientId: string, range: PeriodRa
     prevTotals,
     cpa,
     prevCpa,
+    roas,
+    prevRoas,
+    wonCount: won.count,
+    revenue: won.revenue,
   };
 }

@@ -95,7 +95,7 @@ export function LeadDetail({
 
         <Card>
           <CardContent className="space-y-4 pt-6">
-            <MoveToPills leadId={lead.id} currentStage={lead.stage} />
+            <MoveToPills leadId={lead.id} leadName={lead.name} currentStage={lead.stage} currentValue={lead.value} />
             <DeleteLeadButton leadId={lead.id} redirectTo={listPath} />
           </CardContent>
         </Card>

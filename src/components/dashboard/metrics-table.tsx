@@ -22,6 +22,7 @@ const sourceLabel: Record<string, string> = {
   CSV_IMPORT: "CSV",
   META_ADS_API: "Meta Ads",
   WHATSAPP_API: "WhatsApp",
+  CRM: "CRM",
 };
 
 export function MetricsTable({ rows }: { rows: Row[] }) {
