@@ -34,6 +34,7 @@ export default async function AdminLeadDetailPage({
         listPath={listPath}
         registerAction={boundRegister}
         rescheduleAction={boundReschedule}
+        whatsappTemplate={client.whatsappTemplate}
       />
     </div>
   );

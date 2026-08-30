@@ -1,11 +1,13 @@
-import { Phone, Mail, Tag, Wallet } from "lucide-react";
+import { Phone, Mail, Tag, Wallet, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import { CadencePanel } from "@/components/crm/cadence-panel";
 import { ActivityHistory } from "@/components/crm/activity-history";
 import { MoveToPills } from "@/components/crm/move-to-pills";
 import { DeleteLeadButton } from "@/components/crm/delete-lead-button";
-import { formatCurrencyBRL, formatDateBR } from "@/lib/utils";
+import { cn, formatCurrencyBRL, formatDateBR } from "@/lib/utils";
 import { type Stage, type PendingCadence } from "@/lib/leads";
+import { DEFAULT_WHATSAPP_TEMPLATE, buildWhatsAppLink, fillWhatsappTemplate } from "@/lib/whatsapp";
 import type { ActionState } from "@/actions/clients";
 
 type Activity = {
@@ -51,14 +53,19 @@ export function LeadDetail({
   listPath,
   registerAction,
   rescheduleAction,
+  whatsappTemplate,
 }: {
   lead: LeadWithActivities;
   basePath: string;
   listPath: string;
   registerAction: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   rescheduleAction: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
+  whatsappTemplate?: string | null;
 }) {
   const pending = findPendingCadence(lead.activities);
+
+  const whatsappMessage = fillWhatsappTemplate(whatsappTemplate || DEFAULT_WHATSAPP_TEMPLATE, lead.name);
+  const whatsappLink = lead.phone ? buildWhatsAppLink(lead.phone, whatsappMessage) : null;
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -90,6 +97,21 @@ export function LeadDetail({
             )}
             {lead.notes && <p className="text-muted-foreground">{lead.notes}</p>}
             <p className="pt-1 text-xs text-muted-foreground">Criado em {formatDateBR(lead.createdAt)}</p>
+
+            {whatsappLink ? (
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(buttonVariants({ size: "sm" }), "w-full gap-1.5 bg-emerald-600 text-white hover:opacity-90")}
+              >
+                <MessageCircle className="h-3.5 w-3.5" /> Enviar WhatsApp
+              </a>
+            ) : lead.phone ? (
+              <p className="text-xs text-muted-foreground">Telefone com formato inválido pra abrir o WhatsApp.</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Sem telefone cadastrado pra esse lead.</p>
+            )}
           </CardContent>
         </Card>
 

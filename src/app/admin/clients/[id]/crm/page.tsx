@@ -9,6 +9,8 @@ import { NewLeadForm } from "@/components/crm/new-lead-form";
 import { CrmKpiCards } from "@/components/crm/crm-kpi-cards";
 import { MetaConnectionCard } from "@/components/crm/meta-connection-card";
 import { InboundWebhookCard } from "@/components/crm/inbound-webhook-card";
+import { WhatsappTemplateCard } from "@/components/crm/whatsapp-template-card";
+import { updateWhatsappTemplate } from "@/actions/whatsapp-template";
 import { AdminClientHeader } from "@/components/admin/admin-client-header";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
@@ -23,6 +25,7 @@ export default async function AdminClientCrmPage({ params }: { params: { id: str
   ]);
   const kpis = computeLeadsKpis(leads);
   const boundCreateLead = createLead.bind(null, client.id, `/admin/clients/${client.id}/crm`);
+  const boundUpdateWhatsappTemplate = updateWhatsappTemplate.bind(null, client.id, `/admin/clients/${client.id}/crm`);
 
   return (
     <div className="space-y-6">
@@ -33,6 +36,7 @@ export default async function AdminClientCrmPage({ params }: { params: { id: str
         connection={metaConnection}
       />
       <InboundWebhookCard clientId={client.id} webhookToken={client.webhookToken} />
+      <WhatsappTemplateCard currentTemplate={client.whatsappTemplate} action={boundUpdateWhatsappTemplate} />
       <PageHeader
         eyebrow="CRM"
         title="Funil de leads"

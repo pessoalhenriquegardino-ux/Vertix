@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { getLeadDetail } from "@/lib/leads";
+import { getClientById } from "@/lib/clients";
 import { registerCadenceOutcome, rescheduleCadence } from "@/actions/lead-activities";
 import { LeadDetail } from "@/components/crm/lead-detail";
 import { LinkButton } from "@/components/ui/link-button";
@@ -15,6 +16,7 @@ export default async function ClientLeadDetailPage({ params }: { params: { id: s
   const leadRecord = await getLeadDetail(params.id);
   if (!leadRecord || leadRecord.clientId !== session.user.clientId) notFound();
 
+  const client = await getClientById(session.user.clientId);
   const lead = { ...leadRecord, value: leadRecord.value ? Number(leadRecord.value) : null };
   const basePath = `/crm/leads/${lead.id}`;
   const boundRegister = registerCadenceOutcome.bind(null, lead.id, basePath);
@@ -31,6 +33,7 @@ export default async function ClientLeadDetailPage({ params }: { params: { id: s
         listPath="/crm"
         registerAction={boundRegister}
         rescheduleAction={boundReschedule}
+        whatsappTemplate={client?.whatsappTemplate}
       />
     </div>
   );

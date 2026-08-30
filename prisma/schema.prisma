@@ -75,6 +75,12 @@ model Client {
   // Zapier, Make, etc. — alternativa que não depende de aprovação do App do
   // Meta). Cada cliente tem o seu; pode ser regenerado se vazar.
   webhookToken String @unique @default(cuid())
+
+  // Modelo de mensagem inicial de WhatsApp pra esse cliente usar com leads
+  // novos. Suporta {nome} e {primeiro_nome} como variáveis — são trocados
+  // pelo nome real do lead na hora de montar o link do WhatsApp. Se vazio,
+  // usa um modelo padrão genérico (ver src/lib/whatsapp.ts).
+  whatsappTemplate String? @db.Text
 }
 
 // Conexão do cliente com uma Página do Meta (Facebook/Instagram) — permite
