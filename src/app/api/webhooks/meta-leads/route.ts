@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyMetaWebhookSignature, decryptToken, fetchLeadgenData, mapLeadgenFieldData } from "@/lib/meta";
+import { notifyClientNewLead } from "@/lib/push";
 
 // Handshake de verificação que o Meta faz uma vez, ao configurar o webhook.
 export async function GET(req: NextRequest) {
@@ -68,6 +69,11 @@ async function processLeadgenEvent(pageId: string, leadgenId: string) {
   const notes = questionLines.length > 0 ? questionLines.join("\n") : undefined;
   const createdAt = leadgen.created_time ? new Date(leadgen.created_time) : undefined;
 
+  const existing = await prisma.lead.findUnique({
+    where: { clientId_externalId: { clientId: connection.clientId, externalId: leadgenId } },
+    select: { id: true },
+  });
+
   await prisma.lead.upsert({
     where: { clientId_externalId: { clientId: connection.clientId, externalId: leadgenId } },
     update: { name, email: email ?? undefined, phone: phone ?? undefined, notes },
@@ -84,4 +90,8 @@ async function processLeadgenEvent(pageId: string, leadgenId: string) {
       ...(createdAt && !Number.isNaN(createdAt.getTime()) ? { createdAt } : {}),
     },
   });
+
+  if (!existing) {
+    await notifyClientNewLead(connection.clientId, name, `Meta Ads · ${connection.pageName}`);
+  }
 }

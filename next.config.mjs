@@ -4,13 +4,19 @@
 // optamos por essa abordagem estática): script-src usa 'unsafe-inline' como
 // piso pragmático — a aplicação não carrega nenhum script de terceiros/CDN,
 // só o próprio bundle do Next. O restante das diretivas é restritivo.
+//
+// 'unsafe-eval' só é adicionado em desenvolvimento: o Fast Refresh do Next
+// usa eval() internamente para HMR, e sem isso o CSP quebra o `npm run dev`
+// inteiro (erro "Uncaught EvalError" no console, nada carrega). O build de
+// produção não usa eval, então lá o CSP permanece sem essa permissão.
+const isDev = process.env.NODE_ENV !== "production";
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  `connect-src 'self'${isDev ? " ws:" : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

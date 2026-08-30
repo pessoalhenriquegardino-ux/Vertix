@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireClientAccess } from "@/lib/require-access";
 import type { ActionState } from "@/actions/clients";
 import { STAGES } from "@/lib/leads";
+import { notifyClientNewLead } from "@/lib/push";
 
 const leadSchema = z.object({
   name: z.string().min(2, "Informe o nome do lead."),
@@ -51,6 +52,7 @@ export async function createLead(
   });
 
   revalidatePath(basePath);
+  await notifyClientNewLead(clientId, parsed.data.name, parsed.data.source);
   return { error: undefined };
 }
 

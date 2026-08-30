@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notifyClientNewLead } from "@/lib/push";
 
 // Endpoint genérico de recebimento de leads via webhook (Zapier, Make,
 // n8n, ou qualquer automação que consiga fazer um POST). Alternativa que
@@ -69,13 +70,20 @@ export async function POST(req: NextRequest) {
     name,
     email: email || undefined,
     phone: phone || undefined,
-    source: source ? `Zapier · ${source}` : "Zapier",
+    source: source ? `Automação · ${source}` : "Automação (Zapier/Make/n8n)",
     stage: "NEW" as const,
     notes: notesLines.length > 0 ? notesLines.join("\n") : undefined,
     createdByUserId: "system",
   };
 
+  let created = true;
+
   if (externalId) {
+    const existing = await prisma.lead.findUnique({
+      where: { clientId_externalId: { clientId: client.id, externalId } },
+      select: { id: true },
+    });
+    created = !existing;
     await prisma.lead.upsert({
       where: { clientId_externalId: { clientId: client.id, externalId } },
       update: { name: data.name, email: data.email, phone: data.phone, notes: data.notes },
@@ -83,6 +91,10 @@ export async function POST(req: NextRequest) {
     });
   } else {
     await prisma.lead.create({ data });
+  }
+
+  if (created) {
+    await notifyClientNewLead(client.id, name, source);
   }
 
   return NextResponse.json({ ok: true });

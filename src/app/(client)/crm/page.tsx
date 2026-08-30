@@ -12,6 +12,7 @@ import { InboundWebhookCard } from "@/components/crm/inbound-webhook-card";
 import { getMetaConnection } from "@/actions/meta";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
+import { PushNotificationToggle } from "@/components/push-notification-toggle";
 
 export default async function ClientCrmPage() {
   const session = await getServerSession(authOptions);
@@ -38,6 +39,7 @@ export default async function ClientCrmPage() {
         description="Arraste os cards entre as etapas para acompanhar o funil"
         actions={
           <>
+            <PushNotificationToggle />
             <LinkButton href="/crm/import" variant="outline" size="sm">
               Importar CSV
             </LinkButton>

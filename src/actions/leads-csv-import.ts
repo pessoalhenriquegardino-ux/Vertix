@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireClientAccess } from "@/lib/require-access";
 import type { ImportResult } from "@/actions/csv-import";
 import { STAGES } from "@/lib/leads";
+import { notifyClientNewLead } from "@/lib/push";
 
 const csvRowSchema = z.object({
   name: z.string().min(1),
@@ -50,6 +51,9 @@ export async function importLeadsCsv(clientId: string, basePath: string, rows: u
 
   revalidatePath(basePath);
 
+  // notificação única resumindo o import, em vez de uma por lead
+  await notifyClientNewLead(clientId, `${validRows.length} novo(s) lead(s)`, "Importação CSV");
+
   return { success: true, imported: validRows.length, errors };
 }
 
@@ -92,6 +96,7 @@ export async function importMetaLeadsCsv(
   }
 
   let imported = 0;
+  let createdCount = 0;
 
   for (const row of validRows) {
     const createdAt = row.createdAt ? new Date(row.createdAt) : undefined;
@@ -108,6 +113,11 @@ export async function importMetaLeadsCsv(
     };
 
     if (row.externalId) {
+      const existing = await prisma.lead.findUnique({
+        where: { clientId_externalId: { clientId, externalId: row.externalId } },
+        select: { id: true },
+      });
+      if (!existing) createdCount++;
       await prisma.lead.upsert({
         where: { clientId_externalId: { clientId, externalId: row.externalId } },
         update: { name: data.name, email: data.email, phone: data.phone, notes: data.notes },
@@ -115,11 +125,16 @@ export async function importMetaLeadsCsv(
       });
     } else {
       await prisma.lead.create({ data });
+      createdCount++;
     }
     imported++;
   }
 
   revalidatePath(basePath);
+
+  if (createdCount > 0) {
+    await notifyClientNewLead(clientId, `${createdCount} novo(s) lead(s)`, "Importação Meta Lead Ads");
+  }
 
   return { success: true, imported, errors };
 }

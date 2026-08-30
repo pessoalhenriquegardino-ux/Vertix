@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Check, RefreshCw, Zap, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,12 @@ export function InboundWebhookCard({ clientId, webhookToken }: { clientId: strin
   const [showHelp, setShowHelp] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const url = typeof window !== "undefined" ? `${window.location.origin}/api/leads/inbound?token=${webhookToken}` : "";
+  // Monta a URL só depois de montar no cliente — evita hydration mismatch,
+  // já que o servidor não sabe a origin (window não existe lá).
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    setUrl(`${window.location.origin}/api/leads/inbound?token=${webhookToken}`);
+  }, [webhookToken]);
 
   function copy() {
     navigator.clipboard.writeText(url).then(() => {

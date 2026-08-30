@@ -46,6 +46,19 @@ model User {
   @@index([clientId])
 }
 
+// Inscrição de notificação push do navegador de um usuário — um usuário
+// pode ter várias (um por dispositivo/navegador em que ativou).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 model Client {
   id        String        @id @default(cuid())
   name      String
