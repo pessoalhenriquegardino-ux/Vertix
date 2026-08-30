@@ -75,12 +75,12 @@ export default async function EditClientPage({ params }: { params: { id: string 
           ) : (
             <ul className="space-y-2">
               {client.users.map((u) => (
-                <li key={u.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
-                  <div>
-                    <p className="text-sm font-medium">{u.name}</p>
-                    <p className="text-xs text-muted-foreground">{u.email}</p>
+                <li key={u.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{u.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{u.email}</p>
                   </div>
-                  <Badge variant="secondary">CLIENT</Badge>
+                  <Badge variant="secondary" className="shrink-0">CLIENT</Badge>
                 </li>
               ))}
             </ul>

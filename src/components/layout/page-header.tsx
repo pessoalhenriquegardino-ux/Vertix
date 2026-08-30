@@ -19,10 +19,10 @@ export function PageHeader({
         {eyebrow && (
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-primary">{eyebrow}</p>
         )}
-        <h1 className="text-[1.65rem] font-semibold tracking-tight text-foreground">{title}</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-[1.65rem]">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }

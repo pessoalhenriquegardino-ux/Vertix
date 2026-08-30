@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -68,6 +68,13 @@ export function KanbanBoard({ leads, leadBasePath }: { leads: KanbanLead[]; lead
   const [dragOverStage, setDragOverStage] = useState<Stage | null>(null);
   const [wonDialogLead, setWonDialogLead] = useState<KanbanLead | null>(null);
   const [isPending, startTransition] = useTransition();
+  // Arrastar só faz sentido com mouse — em touchscreen o HTML5 drag-and-drop
+  // não funciona direito (o toque fica "preso" tentando iniciar um arraste).
+  // No touch, o usuário abre o lead e usa os botões "Mover para".
+  const [canDrag, setCanDrag] = useState(false);
+  useEffect(() => {
+    setCanDrag(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+  }, []);
 
   function handleDrop(stage: Stage) {
     setDragOverStage(null);
@@ -118,12 +125,16 @@ export function KanbanBoard({ leads, leadBasePath }: { leads: KanbanLead[]; lead
         return (
           <div
             key={stage}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOverStage(stage);
-            }}
-            onDragLeave={() => setDragOverStage((s) => (s === stage ? null : s))}
-            onDrop={() => handleDrop(stage)}
+            onDragOver={
+              canDrag
+                ? (e) => {
+                    e.preventDefault();
+                    setDragOverStage(stage);
+                  }
+                : undefined
+            }
+            onDragLeave={canDrag ? () => setDragOverStage((s) => (s === stage ? null : s)) : undefined}
+            onDrop={canDrag ? () => handleDrop(stage) : undefined}
             className={cn(
               "flex min-h-[220px] flex-col rounded-xl border border-t-[3px] border-border bg-muted/40 p-2.5 transition-colors",
               meta.color,
@@ -144,14 +155,19 @@ export function KanbanBoard({ leads, leadBasePath }: { leads: KanbanLead[]; lead
                 <Link
                   key={lead.id}
                   href={`${leadBasePath}/${lead.id}`}
-                  draggable
-                  onDragStart={() => setDragging(lead.id)}
-                  onDragEnd={() => {
-                    setDragging(null);
-                    setDragOverStage(null);
-                  }}
+                  draggable={canDrag}
+                  onDragStart={canDrag ? () => setDragging(lead.id) : undefined}
+                  onDragEnd={
+                    canDrag
+                      ? () => {
+                          setDragging(null);
+                          setDragOverStage(null);
+                        }
+                      : undefined
+                  }
                   className={cn(
-                    "block cursor-grab rounded-lg border border-border bg-card p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md active:cursor-grabbing",
+                    "block rounded-lg border border-border bg-card p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md",
+                    canDrag && "cursor-grab active:cursor-grabbing",
                     isPending && dragging === lead.id && "opacity-50"
                   )}
                 >

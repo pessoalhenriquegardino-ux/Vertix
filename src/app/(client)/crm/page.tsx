@@ -40,7 +40,7 @@ export default async function ClientCrmPage() {
       <PageHeader
         eyebrow="CRM"
         title="Funil de leads"
-        description="Arraste os cards entre as etapas para acompanhar o funil"
+        description="Arraste os cards (no computador) ou abra o lead pra mudar de etapa"
         actions={
           <>
             <PushNotificationToggle />

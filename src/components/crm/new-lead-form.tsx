@@ -36,8 +36,8 @@ export function NewLeadForm({
   return (
     <Card className="w-full max-w-xl">
       <CardContent className="space-y-3 pt-6">
-        <form action={formAction} className="grid grid-cols-2 gap-3">
-          <div className="col-span-2 space-y-1.5">
+        <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2 space-y-1.5">
             <Label htmlFor="name">Nome</Label>
             <Input id="name" name="name" required />
           </div>
@@ -57,8 +57,8 @@ export function NewLeadForm({
             <Label htmlFor="value">Valor potencial (R$)</Label>
             <Input id="value" name="value" type="number" step="0.01" min="0" />
           </div>
-          {state?.error && <p className="col-span-2 text-sm text-destructive">{state.error}</p>}
-          <div className="col-span-2 flex gap-2">
+          {state?.error && <p className="text-sm text-destructive sm:col-span-2">{state.error}</p>}
+          <div className="flex gap-2 sm:col-span-2">
             <SubmitButton />
             <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
               Cancelar
