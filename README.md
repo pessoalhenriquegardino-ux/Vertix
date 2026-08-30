@@ -131,7 +131,67 @@ nesta v1 os dois não se somam automaticamente. Uma evolução futura natural é
 fazer o pipeline agregado ser calculado a partir da contagem de leads por
 etapa, quando fizer sentido para o fluxo da agência.
 
-## 7. Deploy na Vercel
+## 7. Integração automática com Meta Ads (Lead Ads)
+
+Além da importação de CSV, o CRM pode receber leads de formulários
+instantâneos do Meta (Instagram/Facebook) **automaticamente, em tempo real**,
+via OAuth + webhook. Isso exige um App configurado uma única vez no Meta for
+Developers (feito pela agência, não por cada cliente).
+
+### 7.1 Criar o App no Meta
+
+1. Acesse **https://developers.facebook.com/apps** → **"Criar app"**.
+2. Tipo de app: **"Empresa"**.
+3. Depois de criado, adicione o produto **"Facebook Login for Business"**.
+4. Em **Configurações → Básico**, copie o **ID do aplicativo** e a **Chave
+   secreta do aplicativo** — são o `META_APP_ID` e `META_APP_SECRET`.
+5. Em **Facebook Login for Business → Configurações**, adicione em "URIs de
+   redirecionamento OAuth válidos":
+   ```
+   https://SEU-DOMINIO.vercel.app/api/meta/callback
+   ```
+6. Adicione o produto **"Webhooks"** → assine o objeto **"Página"** → campo
+   **`leadgen`**:
+   - URL de callback: `https://SEU-DOMINIO.vercel.app/api/webhooks/meta-leads`
+   - Token de verificação: qualquer string sua — o mesmo valor que você vai
+     colocar em `META_WEBHOOK_VERIFY_TOKEN`.
+
+### 7.2 Configurar as variáveis de ambiente
+
+Na Vercel (Project Settings → Environment Variables) e no seu `.env` local:
+```
+META_APP_ID="..."
+META_APP_SECRET="..."
+META_WEBHOOK_VERIFY_TOKEN="uma-string-aleatoria-sua"
+```
+
+### 7.3 App Review (obrigatório para uso com clientes reais)
+
+Por padrão, o Meta só deixa o botão "Conectar com Meta" funcionar com
+Páginas onde **você** é administrador, ou contas que você cadastrar como
+**testador** do App (em Funções do App → Testadores) — dá pra testar de
+verdade com alguns clientes assim, sem esperar aprovação.
+
+Para funcionar com **qualquer cliente**, sem cadastrar cada um manualmente,
+é preciso submeter o App para **App Review** pedindo as permissões
+`pages_show_list`, `pages_manage_metadata`, `pages_read_engagement` e
+`leads_retrieval`. O Meta pede: política de privacidade (URL pública),
+termos de uso (URL pública) e um vídeo curto mostrando o fluxo de login →
+seleção de Página → lead aparecendo no CRM. A análise costuma levar de
+alguns dias a duas semanas. Isso é feito direto no painel do Meta — eu não
+tenho como submeter isso por você.
+
+### 7.4 Como cada cliente conecta
+
+Depois do App configurado, é só isso: o cliente entra em **CRM**, clica em
+**"Conectar com Meta"**, faz login com a conta dele e escolhe a Página. A
+partir daí, todo lead de formulário instantâneo daquela Página entra
+automaticamente no CRM, na etapa "Nova Conversa", com nome/email/telefone e
+as respostas do formulário nas anotações — igual ao CSV, só que automático.
+Se o cliente tiver mais de uma Página, a conexão usa a primeira retornada;
+pra trocar, é só desconectar e reconectar escolhendo a conta certa.
+
+## 8. Deploy na Vercel
 
 ```bash
 npm i -g vercel   # se ainda não tiver a CLI
@@ -143,6 +203,7 @@ Na Vercel, configure em **Project Settings → Environment Variables**:
 - `DATABASE_URL`
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL` (a URL final do deploy, ex: `https://seu-projeto.vercel.app`)
+- `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN` (se for usar a integração da seção 7)
 
 O `build` (`npm run build`) já roda `prisma generate` automaticamente. Antes
 do primeiro deploy (ou após mudar o schema), rode as migrations apontando
@@ -155,7 +216,7 @@ npx prisma migrate deploy
 Para popular o admin em produção, rode o seed uma vez com o `DATABASE_URL`
 de produção no `.env` local (ou `DATABASE_URL=... npm run db:seed`).
 
-## 8. Modelagem de dados
+## 9. Modelagem de dados
 
 Toda métrica fica em `DailyMetric`: um registro por cliente, por dia, por
 fonte (`source`). Hoje só usamos `MANUAL` e `CSV_IMPORT`. Os campos `source`
@@ -170,7 +231,7 @@ Isolamento por tenant: toda query de dashboard é escopada por `clientId`
 rota do cliente aceita `clientId` arbitrário — o `/dashboard` sempre usa
 `session.user.clientId`.
 
-## 9. Segurança / dependências
+## 10. Segurança / dependências
 
 O projeto usa `next@14.2.35`, o patch mais recente da série 14.x (a versão
 pedida no briefing). O `npm audit` ainda acusa avisos herdados da faixa
@@ -179,9 +240,9 @@ de major version, fora do escopo deste MVP). Antes de ir para produção,
 vale rodar `npm audit` periodicamente e considerar migrar para uma versão
 mais nova do Next quando for conveniente.
 
-## 10. Fora de escopo (v1)
+## 11. Fora de escopo (v1)
 
-- Integração real com Meta Marketing API / WhatsApp Business API (import é manual/CSV).
+- Integração automática com WhatsApp Business API (Meta Ads já é automática — ver seção 7; import de WhatsApp continua manual/CSV).
 - Sincronização automática entre o Kanban de leads e o pipeline agregado.
 - Múltiplos níveis de permissão entre admins.
 - Notificações automáticas de cadência (hoje é uma lista dentro do lead, sem alertas por email/push).

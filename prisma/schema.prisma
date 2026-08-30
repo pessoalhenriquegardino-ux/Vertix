@@ -56,6 +56,28 @@ model Client {
   metrics   DailyMetric[]
   campaignMetrics CampaignMetric[]
   leads           Lead[]
+  metaConnection  MetaConnection?
+
+  // Token do link de recebimento de leads via webhook genérico (usado com
+  // Zapier, Make, etc. — alternativa que não depende de aprovação do App do
+  // Meta). Cada cliente tem o seu; pode ser regenerado se vazar.
+  webhookToken String @unique @default(cuid())
+}
+
+// Conexão do cliente com uma Página do Meta (Facebook/Instagram) — permite
+// receber leads de formulários instantâneos automaticamente via webhook, em
+// vez de precisar exportar/importar CSV manualmente. O token da página fica
+// criptografado (ver src/lib/meta.ts).
+model MetaConnection {
+  id                String   @id @default(cuid())
+  clientId          String   @unique
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  pageId            String   @unique
+  pageName          String
+  encryptedToken     String
+  connectedByUserId String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 // Um registro por cliente por dia (por fonte). É a unidade que alimenta os

@@ -7,6 +7,9 @@ import { createLead } from "@/actions/leads";
 import { KanbanBoard } from "@/components/crm/kanban-board";
 import { NewLeadForm } from "@/components/crm/new-lead-form";
 import { CrmKpiCards } from "@/components/crm/crm-kpi-cards";
+import { MetaConnectionCard } from "@/components/crm/meta-connection-card";
+import { InboundWebhookCard } from "@/components/crm/inbound-webhook-card";
+import { getMetaConnection } from "@/actions/meta";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
 
@@ -18,12 +21,17 @@ export default async function ClientCrmPage() {
   const client = await getClientById(session.user.clientId);
   if (!client) redirect("/login");
 
-  const leads = await getLeadsForClient(client.id);
+  const [leads, metaConnection] = await Promise.all([
+    getLeadsForClient(client.id),
+    getMetaConnection(client.id),
+  ]);
   const kpis = computeLeadsKpis(leads);
   const boundCreateLead = createLead.bind(null, client.id, "/crm");
 
   return (
     <div className="space-y-6">
+      <MetaConnectionCard clientId={client.id} connectPath="/api/meta/connect" connection={metaConnection} />
+      <InboundWebhookCard clientId={client.id} webhookToken={client.webhookToken} />
       <PageHeader
         eyebrow="CRM"
         title="Funil de leads"
