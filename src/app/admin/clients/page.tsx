@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
+import { PushNotificationToggle } from "@/components/push-notification-toggle";
 
 function initials(name: string) {
   return name
@@ -40,9 +41,12 @@ export default async function AdminClientsPage() {
         title="Clientes"
         description="Gerencie os clientes atendidos pela Vertix"
         actions={
-          <LinkButton href="/admin/clients/new">
-            <Plus className="mr-1.5 h-4 w-4" /> Novo cliente
-          </LinkButton>
+          <>
+            <PushNotificationToggle />
+            <LinkButton href="/admin/clients/new">
+              <Plus className="mr-1.5 h-4 w-4" /> Novo cliente
+            </LinkButton>
+          </>
         }
       />
 
