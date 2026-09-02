@@ -191,6 +191,46 @@ as respostas do formulário nas anotações — igual ao CSV, só que automátic
 Se o cliente tiver mais de uma Página, a conexão usa a primeira retornada;
 pra trocar, é só desconectar e reconectar escolhendo a conta certa.
 
+### 7.5 Alternativa: Planilha Google (sem depender de App Review)
+
+Se a App Review do Meta ainda não foi liberada (ou o cliente prefere não
+conectar a conta de anúncios direto), tem um caminho alternativo que usa um
+recurso nativo do próprio Meta e não precisa de nenhuma aprovação:
+
+**Como o cliente usa (auto-serviço, sem você):**
+1. No Gerenciador de Anúncios → Formulários de anúncios de lead →
+   **Configuração do CRM** → **Integrações com Planilha Google** → conecta
+   uma planilha nova.
+2. Na planilha criada, clica em **Compartilhar** e adiciona o email da
+   conta de serviço (abaixo) como **Editor**.
+3. No CRM do Vertix, cola o link da planilha no card "Planilha Google" e
+   clica em Conectar.
+
+A partir daí, o sistema lê os leads novos da planilha periodicamente (cron
+diário, grátis na Vercel — ou mais frequente com um cron externo grátis
+tipo [cron-job.org](https://cron-job.org)) e também escreve o status do
+funil ("Qualificado", "Sucesso" etc.) de volta numa coluna "Status CRM" da
+planilha, toda vez que o lead muda de etapa no Kanban.
+
+**Configuração única (você, uma vez, compartilhada por todos os clientes):**
+1. Acesse [console.cloud.google.com](https://console.cloud.google.com),
+   crie um projeto novo (ou use um existente).
+2. Em **APIs e serviços → Biblioteca**, ative a **Google Sheets API**.
+3. Em **APIs e serviços → Credenciais → Criar credenciais → Conta de
+   serviço**, crie uma conta de serviço (não precisa de papel/role especial).
+4. Na conta de serviço criada, aba **Chaves → Adicionar chave → Criar nova
+   chave → JSON** — baixa um arquivo `.json`.
+5. Desse arquivo, pegue dois valores:
+   - `client_email` → vira `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+   - `private_key` → vira `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (cole com os
+     `\n` literais, entre aspas, sem quebrar linha de verdade)
+6. Defina também um `CRON_SECRET` (qualquer string aleatória sua) — protege
+   a rota de sincronização automática.
+
+Esse email de conta de serviço (`client_email`) é o que cada cliente
+adiciona como Editor na planilha dele — não precisa criar uma conta nova
+por cliente, é a mesma pra todos.
+
 ## 8. Deploy na Vercel
 
 ```bash
@@ -204,6 +244,8 @@ Na Vercel, configure em **Project Settings → Environment Variables**:
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL` (a URL final do deploy, ex: `https://seu-projeto.vercel.app`)
 - `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN` (se for usar a integração da seção 7)
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (notificações push)
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `CRON_SECRET` (se for usar a integração da seção 7.5)
 
 O `build` (`npm run build`) já roda `prisma generate` automaticamente. Antes
 do primeiro deploy (ou após mudar o schema), rode as migrations apontando

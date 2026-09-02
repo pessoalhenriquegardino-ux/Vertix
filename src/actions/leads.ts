@@ -7,6 +7,7 @@ import { requireClientAccess } from "@/lib/require-access";
 import type { ActionState } from "@/actions/clients";
 import { STAGES } from "@/lib/leads";
 import { notifyClientNewLead } from "@/lib/push";
+import { syncLeadStatusToSheet } from "@/lib/google-sheets-sync";
 
 const leadSchema = z.object({
   name: z.string().min(2, "Informe o nome do lead."),
@@ -80,6 +81,8 @@ export async function updateLeadStage(leadId: string, stage: string, value?: num
 
   revalidatePath(`/crm`);
   revalidatePath(`/admin/clients/${lead.clientId}/crm`);
+
+  await syncLeadStatusToSheet(lead.clientId, lead.externalId, parsedStage.data);
 }
 
 export async function deleteLead(leadId: string) {

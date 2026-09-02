@@ -9,8 +9,10 @@ import { NewLeadForm } from "@/components/crm/new-lead-form";
 import { CrmKpiCards } from "@/components/crm/crm-kpi-cards";
 import { MetaConnectionCard } from "@/components/crm/meta-connection-card";
 import { InboundWebhookCard } from "@/components/crm/inbound-webhook-card";
+import { GoogleSheetCard } from "@/components/crm/google-sheet-card";
 import { WhatsappTemplateCard } from "@/components/crm/whatsapp-template-card";
 import { updateWhatsappTemplate } from "@/actions/whatsapp-template";
+import { getGoogleSheetConnection } from "@/actions/google-sheets";
 import { AdminClientHeader } from "@/components/admin/admin-client-header";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
@@ -19,13 +21,15 @@ export default async function AdminClientCrmPage({ params }: { params: { id: str
   const client = await getClientById(params.id);
   if (!client) notFound();
 
-  const [leads, metaConnection] = await Promise.all([
+  const [leads, metaConnection, googleSheetConnection] = await Promise.all([
     getLeadsForClient(client.id),
     getMetaConnection(client.id),
+    getGoogleSheetConnection(client.id),
   ]);
   const kpis = computeLeadsKpis(leads);
   const boundCreateLead = createLead.bind(null, client.id, `/admin/clients/${client.id}/crm`);
   const boundUpdateWhatsappTemplate = updateWhatsappTemplate.bind(null, client.id, `/admin/clients/${client.id}/crm`);
+  const crmBasePath = `/admin/clients/${client.id}/crm`;
 
   return (
     <div className="space-y-6">
@@ -34,6 +38,12 @@ export default async function AdminClientCrmPage({ params }: { params: { id: str
         clientId={client.id}
         connectPath={`/api/meta/connect?clientId=${client.id}`}
         connection={metaConnection}
+      />
+      <GoogleSheetCard
+        clientId={client.id}
+        basePath={crmBasePath}
+        connection={googleSheetConnection}
+        serviceAccountEmail={process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ?? null}
       />
       <InboundWebhookCard clientId={client.id} webhookToken={client.webhookToken} />
       <WhatsappTemplateCard currentTemplate={client.whatsappTemplate} action={boundUpdateWhatsappTemplate} />

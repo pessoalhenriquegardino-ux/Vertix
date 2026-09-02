@@ -70,6 +70,7 @@ model Client {
   campaignMetrics CampaignMetric[]
   leads           Lead[]
   metaConnection  MetaConnection?
+  googleSheetConnection GoogleSheetConnection?
 
   // Token do link de recebimento de leads via webhook genérico (usado com
   // Zapier, Make, etc. — alternativa que não depende de aprovação do App do
@@ -81,6 +82,25 @@ model Client {
   // pelo nome real do lead na hora de montar o link do WhatsApp. Se vazio,
   // usa um modelo padrão genérico (ver src/lib/whatsapp.ts).
   whatsappTemplate String? @db.Text
+}
+
+// Conexão do cliente com uma Planilha Google alimentada pela integração
+// nativa do Meta (Lead Ads → Planilha Google) — alternativa que não passa
+// pela API do Meta nem precisa de aprovação de App. O sistema lê as linhas
+// novas periodicamente e também escreve o status do funil de volta numa
+// coluna da planilha ("Status CRM").
+model GoogleSheetConnection {
+  id                String   @id @default(cuid())
+  clientId          String   @unique
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sheetId           String // extraído da URL colada pelo usuário
+  sheetTab          String? // nome da aba; null = primeira aba
+  statusColumnLetter String? // coluna (ex: "J") onde escrevemos o status do funil de volta
+  lastSyncAt        DateTime?
+  lastSyncError     String?
+  connectedByUserId String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 // Conexão do cliente com uma Página do Meta (Facebook/Instagram) — permite

@@ -9,9 +9,11 @@ import { NewLeadForm } from "@/components/crm/new-lead-form";
 import { CrmKpiCards } from "@/components/crm/crm-kpi-cards";
 import { MetaConnectionCard } from "@/components/crm/meta-connection-card";
 import { InboundWebhookCard } from "@/components/crm/inbound-webhook-card";
+import { GoogleSheetCard } from "@/components/crm/google-sheet-card";
 import { WhatsappTemplateCard } from "@/components/crm/whatsapp-template-card";
 import { updateWhatsappTemplate } from "@/actions/whatsapp-template";
 import { getMetaConnection } from "@/actions/meta";
+import { getGoogleSheetConnection } from "@/actions/google-sheets";
 import { PageHeader } from "@/components/layout/page-header";
 import { LinkButton } from "@/components/ui/link-button";
 import { PushNotificationToggle } from "@/components/push-notification-toggle";
@@ -24,9 +26,10 @@ export default async function ClientCrmPage() {
   const client = await getClientById(session.user.clientId);
   if (!client) redirect("/login");
 
-  const [leads, metaConnection] = await Promise.all([
+  const [leads, metaConnection, googleSheetConnection] = await Promise.all([
     getLeadsForClient(client.id),
     getMetaConnection(client.id),
+    getGoogleSheetConnection(client.id),
   ]);
   const kpis = computeLeadsKpis(leads);
   const boundCreateLead = createLead.bind(null, client.id, "/crm");
@@ -35,6 +38,12 @@ export default async function ClientCrmPage() {
   return (
     <div className="space-y-6">
       <MetaConnectionCard clientId={client.id} connectPath="/api/meta/connect" connection={metaConnection} />
+      <GoogleSheetCard
+        clientId={client.id}
+        basePath="/crm"
+        connection={googleSheetConnection}
+        serviceAccountEmail={process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ?? null}
+      />
       <InboundWebhookCard clientId={client.id} webhookToken={client.webhookToken} />
       <WhatsappTemplateCard currentTemplate={client.whatsappTemplate} action={boundUpdateWhatsappTemplate} />
       <PageHeader
