@@ -1,8 +1,24 @@
 import { prisma } from "@/lib/prisma";
 import { detectMetaLeadsFormat, mapMetaLeadsRows } from "@/lib/meta-leads-csv";
-import { readSheet, rowsToRecords, ensureStatusColumn, writeStatusCell } from "@/lib/google-sheets";
+import { readSheet, rowsToRecords, ensureStatusColumn, writeStatusCell, columnIndexToLetter } from "@/lib/google-sheets";
 import { notifyClientNewLead } from "@/lib/push";
 import { STAGE_LABELS, type Stage } from "@/lib/leads";
+
+// Valores padrão que o próprio Meta usa/espera na coluna "lead_status" da
+// integração nativa dele — é essa coluna que alimenta o mapeamento de
+// "Evento de conversão" em Configuração do CRM → Planilha Google, e que a
+// Meta usa pra otimizar a entrega dos anúncios (avisa o algoritmo quais
+// leads viraram qualificados/convertidos de verdade). O cliente ainda
+// precisa, uma vez, ir em Configuração do CRM no Ads Manager e mapear cada
+// um desses valores pro evento de conversão correspondente.
+const STAGE_TO_META_LEAD_STATUS: Record<Stage, string> = {
+  NEW: "NEW",
+  IN_ANALYSIS: "CONTACTED",
+  QUALIFIED: "QUALIFIED",
+  PROPOSAL: "PROPOSAL",
+  WON: "CONVERTED",
+  LOST: "DISQUALIFIED",
+};
 
 export type SyncResult = { imported: number; error?: string };
 
@@ -104,7 +120,24 @@ export async function syncLeadStatusToSheet(clientId: string, leadExternalId: st
       });
     }
 
+    // "Status CRM": coluna nossa, com o nome da etapa em português — só pra
+    // referência visual de quem olha a planilha.
     await writeStatusCell(connection.sheetId, connection.sheetTab, statusColumnLetter, dataRowIndex, STAGE_LABELS[stage]);
+
+    // "lead_status": coluna nativa do Meta — alimenta o "Evento de
+    // conversão" que otimiza a entrega dos anúncios. Só escreve se a coluna
+    // já existir (é criada pelo próprio Meta, não por nós).
+    const leadStatusColIndex = header.findIndex((h) => h?.trim().toLowerCase() === "lead_status");
+    if (leadStatusColIndex >= 0) {
+      const leadStatusColLetter = columnIndexToLetter(leadStatusColIndex);
+      await writeStatusCell(
+        connection.sheetId,
+        connection.sheetTab,
+        leadStatusColLetter,
+        dataRowIndex,
+        STAGE_TO_META_LEAD_STATUS[stage]
+      );
+    }
   } catch (err) {
     console.error("syncLeadStatusToSheet error", err);
   }
