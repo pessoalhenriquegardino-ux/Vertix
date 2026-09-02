@@ -7,8 +7,21 @@ import { Sheet, Unplug, RefreshCw, ChevronDown, AlertTriangle, CheckCircle2 } fr
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { connectGoogleSheet, disconnectGoogleSheet, syncGoogleSheetNow } from "@/actions/google-sheets";
+import { Select } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { connectGoogleSheet, disconnectGoogleSheet, syncGoogleSheetNow, updateSyncInterval } from "@/actions/google-sheets";
 import type { ActionState } from "@/actions/clients";
+
+const INTERVAL_OPTIONS = [
+  { minutes: 5, label: "A cada 5 minutos" },
+  { minutes: 15, label: "A cada 15 minutos" },
+  { minutes: 20, label: "A cada 20 minutos" },
+  { minutes: 30, label: "A cada 30 minutos" },
+  { minutes: 60, label: "A cada 1 hora" },
+  { minutes: 180, label: "A cada 3 horas" },
+  { minutes: 360, label: "A cada 6 horas" },
+  { minutes: 1440, label: "1x por dia" },
+];
 
 function ConnectButton() {
   const { pending } = useFormStatus();
@@ -23,6 +36,7 @@ type Connection = {
   sheetId: string;
   lastSyncAt: Date | null;
   lastSyncError: string | null;
+  syncIntervalMinutes: number;
 } | null;
 
 export function GoogleSheetCard({
@@ -56,6 +70,13 @@ export function GoogleSheetCard({
   function disconnect() {
     startTransition(async () => {
       await disconnectGoogleSheet(clientId, basePath);
+      router.refresh();
+    });
+  }
+
+  function changeInterval(minutes: number) {
+    startTransition(async () => {
+      await updateSyncInterval(clientId, basePath, minutes);
       router.refresh();
     });
   }
@@ -118,7 +139,24 @@ export function GoogleSheetCard({
         )}
 
         {connection ? (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Verificar planilha
+              </Label>
+              <Select
+                className="h-9 w-auto text-sm"
+                defaultValue={String(connection.syncIntervalMinutes)}
+                disabled={isPending}
+                onChange={(e) => changeInterval(Number(e.target.value))}
+              >
+                {INTERVAL_OPTIONS.map((o) => (
+                  <option key={o.minutes} value={o.minutes}>
+                    {o.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <Button variant="outline" size="sm" disabled={isPending} onClick={syncNow}>
               <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isPending ? "animate-spin" : ""}`} />
               {isPending ? "Sincronizando..." : "Sincronizar agora"}

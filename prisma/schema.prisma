@@ -96,6 +96,11 @@ model GoogleSheetConnection {
   sheetId           String // extraído da URL colada pelo usuário
   sheetTab          String? // nome da aba; null = primeira aba
   statusColumnLetter String? // coluna (ex: "J") onde escrevemos o status do funil de volta
+  // De quanto em quanto tempo verificar a planilha, em minutos. O "motor"
+  // que dispara a checagem roda a cada 5 min (cron externo grátis); esse
+  // campo só decide se, naquela hora, já passou tempo suficiente pra valer
+  // a pena sincronizar esse cliente específico.
+  syncIntervalMinutes Int @default(1440)
   lastSyncAt        DateTime?
   lastSyncError     String?
   connectedByUserId String

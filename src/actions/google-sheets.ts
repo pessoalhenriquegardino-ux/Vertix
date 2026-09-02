@@ -50,6 +50,15 @@ export async function disconnectGoogleSheet(clientId: string, basePath: string) 
   revalidatePath(basePath);
 }
 
+export async function updateSyncInterval(clientId: string, basePath: string, minutes: number) {
+  await requireClientAccess(clientId);
+  await prisma.googleSheetConnection.update({
+    where: { clientId },
+    data: { syncIntervalMinutes: minutes },
+  });
+  revalidatePath(basePath);
+}
+
 export async function syncGoogleSheetNow(clientId: string, basePath: string) {
   await requireClientAccess(clientId);
   const result = await syncLeadsFromGoogleSheet(clientId);
