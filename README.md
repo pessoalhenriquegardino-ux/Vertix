@@ -231,6 +231,32 @@ Esse email de conta de serviço (`client_email`) é o que cada cliente
 adiciona como Editor na planilha dele — não precisa criar uma conta nova
 por cliente, é a mesma pra todos.
 
+## 7.6 API de leads pra automações externas (n8n, agentes de IA etc.)
+
+Pra automações que não são Zapier/Make/Google Sheets — o caso principal
+hoje é um agente de IA no WhatsApp de um cliente, rodando no n8n — tem uma
+API própria, autenticada por API Key (não por login de sessão). Cada
+cliente tem a sua chave, visível/regenerável no card "API de leads" na
+tela do CRM dele (dentro tem os exemplos de `curl` prontos pra copiar).
+
+Autenticação: header `Authorization: Bearer <api_key>` (ou `x-api-key`).
+
+**`POST /api/leads`** — cria ou atualiza um lead:
+```json
+{ "nome": "Maria Silva", "telefone": "11987654321", "origem": "whatsapp-ia", "status": "Nova Conversa" }
+```
+Se já existe um lead com o mesmo telefone pra aquele cliente, atualiza em
+vez de duplicar (e sempre atualiza `ultimaInteracaoEm` pra agora). O
+telefone é normalizado automaticamente (só dígitos, com DDI, assume Brasil
+se não vier o código do país). `status` aceita tanto o nome em português
+usado no dashboard ("Nova Conversa", "Qualificado"...) quanto a chave
+interna (`NEW`, `QUALIFIED`...); se omitido, entra como "Nova Conversa".
+
+**`GET /api/leads/inativos?horas=24`** — leads daquele cliente que ainda
+não fecharam (nem "Sucesso" nem "Perdas") e não têm interação há mais de
+X horas. Pensado pra um workflow do n8n rodando em intervalo disparar
+follow-up de reengajamento.
+
 ## 8. Deploy na Vercel
 
 ```bash

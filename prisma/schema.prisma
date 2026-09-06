@@ -77,6 +77,13 @@ model Client {
   // Meta). Cada cliente tem o seu; pode ser regenerado se vazar.
   webhookToken String @unique @default(cuid())
 
+  // Chave de API própria do cliente, pra automações externas autenticadas
+  // (ex: agente de IA no WhatsApp rodando no n8n) chamarem POST /api/leads
+  // e GET /api/leads/inativos. Cada cliente tem a sua — vazar uma não
+  // compromete os outros. Fica visível/regenerável na tela do CRM, igual
+  // ao webhookToken.
+  apiKey String @unique @default(cuid())
+
   // Modelo de mensagem inicial de WhatsApp pra esse cliente usar com leads
   // novos. Suporta {nome} e {primeiro_nome} como variáveis — são trocados
   // pelo nome real do lead na hora de montar o link do WhatsApp. Se vazio,
@@ -236,10 +243,18 @@ model Lead {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  // Quando o lead teve a última interação de verdade (mensagem trocada,
+  // contato feito) — distinto de updatedAt, que muda em qualquer edição
+  // interna. Alimenta a automação de follow-up (GET /api/leads/inativos):
+  // "quem está morno há X horas sem resposta". Atualizado pela API externa
+  // a cada novo contato recebido; começa igual ao createdAt.
+  lastInteractionAt DateTime @default(now())
+
   activities LeadActivity[]
 
   @@unique([clientId, externalId])
   @@index([clientId, stage])
+  @@index([clientId, lastInteractionAt])
 }
 
 // Cadência de contato: histórico de atividades feitas + próximos passos

@@ -9,6 +9,7 @@ import { NewLeadForm } from "@/components/crm/new-lead-form";
 import { CrmKpiCards } from "@/components/crm/crm-kpi-cards";
 import { MetaConnectionCard } from "@/components/crm/meta-connection-card";
 import { InboundWebhookCard } from "@/components/crm/inbound-webhook-card";
+import { ApiKeyCard } from "@/components/crm/api-key-card";
 import { GoogleSheetCard } from "@/components/crm/google-sheet-card";
 import { WhatsappTemplateCard } from "@/components/crm/whatsapp-template-card";
 import { updateWhatsappTemplate } from "@/actions/whatsapp-template";
@@ -45,6 +46,7 @@ export default async function ClientCrmPage() {
         serviceAccountEmail={process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ?? null}
       />
       <InboundWebhookCard clientId={client.id} webhookToken={client.webhookToken} />
+      <ApiKeyCard clientId={client.id} apiKey={client.apiKey} />
       <WhatsappTemplateCard currentTemplate={client.whatsappTemplate} action={boundUpdateWhatsappTemplate} />
       <PageHeader
         eyebrow="CRM"

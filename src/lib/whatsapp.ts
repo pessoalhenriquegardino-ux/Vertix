@@ -9,11 +9,13 @@ export function fillWhatsappTemplate(template: string, leadName: string): string
   return template.replaceAll("{primeiro_nome}", firstName).replaceAll("{nome}", trimmedName);
 }
 
-// Monta o link do WhatsApp (wa.me) já com a mensagem pronta. Aceita
-// telefone em qualquer formatação (com parênteses, traço, espaço, +55...)
-// e tenta normalizar pro padrão internacional que o wa.me espera —
-// assume Brasil (55) quando o número não tem código de país.
-export function buildWhatsAppLink(phone: string, message: string): string | null {
+// Normaliza telefone pra só dígitos, com DDI — aceita qualquer formatação
+// de entrada (parênteses, traço, espaço, +55...) e assume Brasil (55)
+// quando o número não tem código de país. Usado tanto pro link do
+// WhatsApp quanto pra guardar o telefone de forma consistente no banco
+// (ex: API de leads externos), evitando duplicar o mesmo lead por causa
+// de formatação diferente do telefone.
+export function normalizePhoneDigits(phone: string): string | null {
   const digits = phone.replace(/\D/g, "");
   if (!digits) return null;
 
@@ -27,5 +29,12 @@ export function buildWhatsAppLink(phone: string, message: string): string | null
 
   if (normalized.length < 10) return null; // curto demais pra ser um número válido
 
+  return normalized;
+}
+
+// Monta o link do WhatsApp (wa.me) já com a mensagem pronta.
+export function buildWhatsAppLink(phone: string, message: string): string | null {
+  const normalized = normalizePhoneDigits(phone);
+  if (!normalized) return null;
   return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
 }

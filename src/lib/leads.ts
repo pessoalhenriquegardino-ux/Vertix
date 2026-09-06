@@ -12,6 +12,31 @@ export const STAGE_LABELS: Record<Stage, string> = {
   LOST: "Perdas",
 };
 
+function normalizeForMatch(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+// Aceita tanto a chave do enum (NEW, QUALIFIED...) quanto o rótulo em
+// português usado no dashboard ("Nova Conversa", "Qualificado"...) —
+// usado pela API externa de leads (n8n etc.), que pode mandar qualquer um
+// dos dois. Se não reconhecer, cai em "NEW".
+export function parseStageInput(input?: string | null): Stage {
+  if (!input) return "NEW";
+  const normalized = normalizeForMatch(input);
+
+  const byKey = STAGES.find((s) => s.toLowerCase() === normalized);
+  if (byKey) return byKey;
+
+  const byLabel = STAGES.find((s) => normalizeForMatch(STAGE_LABELS[s]) === normalized);
+  if (byLabel) return byLabel;
+
+  return "NEW";
+}
+
 export const ACTIVITY_LABELS: Record<string, string> = {
   CALL: "Ligação",
   WHATSAPP: "WhatsApp",
