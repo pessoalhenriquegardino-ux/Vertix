@@ -21,6 +21,13 @@ const bodySchema = z.object({
     .min(1, "Campo 'telefone' é obrigatório."),
   origem: z.string().trim().optional(),
   status: z.string().trim().optional(),
+  // Valor do contrato fechado — só faz sentido quando status = "Sucesso"
+  // (mesmo campo "value" preenchido manualmente na tela ao mover um lead
+  // pra Sucesso, ver won-value-dialog.tsx / updateLeadStage).
+  valorContrato: z.coerce
+    .number({ invalid_type_error: "Campo 'valorContrato' deve ser um número." })
+    .min(0, "Campo 'valorContrato' não pode ser negativo.")
+    .optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -48,6 +55,18 @@ export async function POST(req: NextRequest) {
   }
 
   const stage = parseStageInput(parsed.data.status);
+
+  // valorContrato só é processado quando o status é "Sucesso" (WON) — em
+  // qualquer outro status, é ignorado (mesma lógica de updateLeadStage: o
+  // valor do lead só é alterado ao mover pra Sucesso).
+  if (stage === "WON" && parsed.data.valorContrato === undefined) {
+    return NextResponse.json(
+      { error: "Campo 'valorContrato' é obrigatório quando o status é 'Sucesso'." },
+      { status: 400 }
+    );
+  }
+  const valorContrato = stage === "WON" ? parsed.data.valorContrato : undefined;
+
   const now = new Date();
 
   // Dedup por telefone dentro do mesmo cliente: se já existe, atualiza em
@@ -69,6 +88,7 @@ export async function POST(req: NextRequest) {
         source: parsed.data.origem || undefined,
         stage,
         lastInteractionAt: now,
+        ...(valorContrato !== undefined ? { value: valorContrato } : {}),
       },
     });
   } else {
@@ -82,6 +102,7 @@ export async function POST(req: NextRequest) {
         stage,
         createdByUserId: "api",
         lastInteractionAt: now,
+        ...(valorContrato !== undefined ? { value: valorContrato } : {}),
       },
     });
   }
@@ -97,6 +118,7 @@ export async function POST(req: NextRequest) {
       telefone: lead.phone,
       origem: lead.source,
       status: lead.stage,
+      valorContrato: lead.value !== null ? Number(lead.value) : null,
       ultimaInteracaoEm: lead.lastInteractionAt,
       criadoEm: lead.createdAt,
     },

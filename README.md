@@ -252,6 +252,11 @@ se não vier o código do país). `status` aceita tanto o nome em português
 usado no dashboard ("Nova Conversa", "Qualificado"...) quanto a chave
 interna (`NEW`, `QUALIFIED`...); se omitido, entra como "Nova Conversa".
 
+Pra marcar como fechado, manda `"status": "Sucesso"` junto com
+`"valorContrato": 1500.00` (o valor do contrato) — esse campo só é
+considerado quando o status é "Sucesso" (é ignorado em qualquer outro
+status) e é **obrigatório** nesse caso, senão a API responde 400.
+
 **`GET /api/leads/inativos?horas=24`** — leads daquele cliente que ainda
 não fecharam (nem "Sucesso" nem "Perdas") e não têm interação há mais de
 X horas. Pensado pra um workflow do n8n rodando em intervalo disparar

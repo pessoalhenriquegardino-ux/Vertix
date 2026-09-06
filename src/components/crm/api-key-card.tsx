@@ -27,6 +27,11 @@ export function ApiKeyCard({ clientId, apiKey }: { clientId: string; apiKey: str
   -H "Content-Type: application/json" \\
   -d '{"nome": "Maria Silva", "telefone": "11987654321", "origem": "whatsapp-ia", "status": "Nova Conversa"}'`;
 
+  const curlWon = `curl -X POST "${baseUrl}/api/leads" \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"nome": "Maria Silva", "telefone": "11987654321", "status": "Sucesso", "valorContrato": 1500.00}'`;
+
   const curlGet = `curl "${baseUrl}/api/leads/inativos?horas=24" \\
   -H "Authorization: Bearer ${apiKey}"`;
 
@@ -95,6 +100,16 @@ export function ApiKeyCard({ clientId, apiKey }: { clientId: string; apiKey: str
 
             <div>
               <div className="mb-1 flex items-center justify-between">
+                <span className="font-medium text-foreground">Marcar como Sucesso (com valor do contrato)</span>
+                <button onClick={() => copy(curlWon, "won")} className="text-primary hover:underline">
+                  {copied === "won" ? "Copiado!" : "Copiar"}
+                </button>
+              </div>
+              <pre className="overflow-x-auto rounded-md bg-background p-2 text-[11px] leading-relaxed">{curlWon}</pre>
+            </div>
+
+            <div>
+              <div className="mb-1 flex items-center justify-between">
                 <span className="font-medium text-foreground">Leads sem resposta há X horas</span>
                 <button onClick={() => copy(curlGet, "get")} className="text-primary hover:underline">
                   {copied === "get" ? "Copiado!" : "Copiar"}
@@ -107,6 +122,11 @@ export function ApiKeyCard({ clientId, apiKey }: { clientId: string; apiKey: str
               O campo <code className="rounded bg-background px-1 py-0.5">status</code> aceita "Nova Conversa",
               "Análise", "Qualificado", "Proposta", "Sucesso" ou "Perdas" (se omitido, entra como "Nova Conversa").
               Se já existir um lead com o mesmo telefone, ele é atualizado em vez de duplicado.
+            </p>
+            <p>
+              O campo <code className="rounded bg-background px-1 py-0.5">valorContrato</code> só é considerado
+              quando <code className="rounded bg-background px-1 py-0.5">status</code> é "Sucesso" — nesse caso é
+              obrigatório. Em qualquer outro status, é ignorado.
             </p>
           </div>
         )}
