@@ -10,16 +10,17 @@ import { notifyClientNewLead } from "@/lib/push";
 // primeiro caso de uso: um agente de IA no WhatsApp de um cliente,
 // rodando no n8n). Não usa sessão/login — quem chama é uma automação,
 // não um usuário logado no CRM.
+// 'telefone' e 'origem' também podem vir via query string (?telefone=...
+// &origem=...), como alternativa ao body — útil pra automações que montam
+// a URL dinamicamente. Por isso são opcionais aqui: a obrigatoriedade de
+// 'telefone' é checada depois de mesclar body + query (body tem prioridade).
 const bodySchema = z.object({
   nome: z
     .string({ required_error: "Campo 'nome' é obrigatório." })
     .trim()
     .min(1, "Campo 'nome' é obrigatório."),
-  telefone: z
-    .string({ required_error: "Campo 'telefone' é obrigatório." })
-    .trim()
-    .min(1, "Campo 'telefone' é obrigatório."),
-  origem: z.string().trim().optional(),
+  telefone: z.string().trim().min(1).optional(),
+  origem: z.string().trim().min(1).optional(),
   status: z.string().trim().optional(),
   // Valor do contrato fechado — só faz sentido quando status = "Sucesso"
   // (mesmo campo "value" preenchido manualmente na tela ao mover um lead
@@ -49,7 +50,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
 
-  const normalizedPhone = normalizePhoneDigits(parsed.data.telefone);
+  // body tem prioridade sobre query string; se não vier no body, cai pro
+  // valor da query (?telefone=...&origem=...), se houver.
+  const telefone = parsed.data.telefone || req.nextUrl.searchParams.get("telefone")?.trim() || undefined;
+  const origem = parsed.data.origem || req.nextUrl.searchParams.get("origem")?.trim() || undefined;
+
+  if (!telefone) {
+    return NextResponse.json(
+      { error: "Campo 'telefone' é obrigatório (no corpo ou na query string)." },
+      { status: 400 }
+    );
+  }
+
+  const normalizedPhone = normalizePhoneDigits(telefone);
   if (!normalizedPhone) {
     return NextResponse.json({ error: "Campo 'telefone' não parece um número válido." }, { status: 400 });
   }
@@ -85,7 +98,7 @@ export async function POST(req: NextRequest) {
       where: { id: existing.id },
       data: {
         name: parsed.data.nome,
-        source: parsed.data.origem || undefined,
+        source: origem,
         stage,
         lastInteractionAt: now,
         ...(valorContrato !== undefined ? { value: valorContrato } : {}),
@@ -98,7 +111,7 @@ export async function POST(req: NextRequest) {
         clientId: client.id,
         name: parsed.data.nome,
         phone: normalizedPhone,
-        source: parsed.data.origem || undefined,
+        source: origem,
         stage,
         createdByUserId: "api",
         lastInteractionAt: now,
@@ -108,7 +121,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (created) {
-    await notifyClientNewLead(client.id, lead.name, parsed.data.origem);
+    await notifyClientNewLead(client.id, lead.name, origem);
   }
 
   return NextResponse.json(

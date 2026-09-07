@@ -252,6 +252,11 @@ se não vier o código do país). `status` aceita tanto o nome em português
 usado no dashboard ("Nova Conversa", "Qualificado"...) quanto a chave
 interna (`NEW`, `QUALIFIED`...); se omitido, entra como "Nova Conversa".
 
+`telefone` e `origem` também podem vir via query string
+(`?telefone=...&origem=...`), como alternativa ao body — útil pra
+automações que montam a URL dinamicamente. Se vier nos dois lugares, o
+valor do body tem prioridade.
+
 Pra marcar como fechado, manda `"status": "Sucesso"` junto com
 `"valorContrato": 1500.00` (o valor do contrato) — esse campo só é
 considerado quando o status é "Sucesso" (é ignorado em qualquer outro
