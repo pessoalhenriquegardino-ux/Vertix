@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateApiRequest } from "@/lib/api-auth";
 import { normalizePhoneDigits } from "@/lib/whatsapp";
-import { parseStageInput } from "@/lib/leads";
+import { parseStageInput, isStageRegression } from "@/lib/leads";
 import { notifyClientNewLead } from "@/lib/push";
 
 // Recebe leads de automações externas autenticadas por API Key (o
@@ -14,11 +14,11 @@ import { notifyClientNewLead } from "@/lib/push";
 // &origem=...), como alternativa ao body — útil pra automações que montam
 // a URL dinamicamente. Por isso são opcionais aqui: a obrigatoriedade de
 // 'telefone' é checada depois de mesclar body + query (body tem prioridade).
+// 'nome' também é opcional aqui — só é exigido de verdade na criação de um
+// lead novo (checado depois de saber se o telefone já existe ou não);
+// numa atualização, se não vier, mantém o nome que já estava salvo.
 const bodySchema = z.object({
-  nome: z
-    .string({ required_error: "Campo 'nome' é obrigatório." })
-    .trim()
-    .min(1, "Campo 'nome' é obrigatório."),
+  nome: z.string().trim().min(1, "Campo 'nome' não pode ser vazio.").optional(),
   telefone: z.string().trim().min(1).optional(),
   origem: z.string().trim().min(1).optional(),
   status: z.string().trim().optional(),
@@ -67,18 +67,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Campo 'telefone' não parece um número válido." }, { status: 400 });
   }
 
-  const stage = parseStageInput(parsed.data.status);
+  const intendedStage = parseStageInput(parsed.data.status);
 
   // valorContrato só é processado quando o status é "Sucesso" (WON) — em
   // qualquer outro status, é ignorado (mesma lógica de updateLeadStage: o
-  // valor do lead só é alterado ao mover pra Sucesso).
-  if (stage === "WON" && parsed.data.valorContrato === undefined) {
+  // valor do lead só é alterado ao mover pra Sucesso). "Sucesso" nunca é
+  // considerado regressão (é o topo do funil), então essa checagem vale
+  // tanto pra criação quanto pra atualização.
+  if (intendedStage === "WON" && parsed.data.valorContrato === undefined) {
     return NextResponse.json(
       { error: "Campo 'valorContrato' é obrigatório quando o status é 'Sucesso'." },
       { status: 400 }
     );
   }
-  const valorContrato = stage === "WON" ? parsed.data.valorContrato : undefined;
 
   const now = new Date();
 
@@ -87,17 +88,33 @@ export async function POST(req: NextRequest) {
   // continua ao longo do tempo vira um só lead, não vários).
   const existing = await prisma.lead.findFirst({
     where: { clientId: client.id, phone: normalizedPhone },
-    select: { id: true },
+    select: { id: true, name: true, stage: true },
   });
+
+  // 'nome' só é obrigatório de verdade na criação — numa atualização, se
+  // não vier, mantém o nome já salvo.
+  if (!existing && !parsed.data.nome) {
+    return NextResponse.json(
+      { error: "Campo 'nome' é obrigatório ao criar um lead novo (telefone ainda não cadastrado)." },
+      { status: 400 }
+    );
+  }
 
   let lead;
   let created = false;
 
   if (existing) {
+    // Proteção contra regressão: só aplica a mudança de status se o novo
+    // estágio for >= o atual (ou for "Perdas", sempre permitido). Se for
+    // uma tentativa de voltar estágio, ignora a mudança silenciosamente —
+    // sem erro — mas ainda assim registra a interação (lastInteractionAt).
+    const stage = isStageRegression(existing.stage, intendedStage) ? existing.stage : intendedStage;
+    const valorContrato = intendedStage === "WON" ? parsed.data.valorContrato : undefined;
+
     lead = await prisma.lead.update({
       where: { id: existing.id },
       data: {
-        name: parsed.data.nome,
+        name: parsed.data.nome || existing.name,
         source: origem,
         stage,
         lastInteractionAt: now,
@@ -106,13 +123,15 @@ export async function POST(req: NextRequest) {
     });
   } else {
     created = true;
+    const valorContrato = intendedStage === "WON" ? parsed.data.valorContrato : undefined;
+
     lead = await prisma.lead.create({
       data: {
         clientId: client.id,
-        name: parsed.data.nome,
+        name: parsed.data.nome!,
         phone: normalizedPhone,
         source: origem,
-        stage,
+        stage: intendedStage,
         createdByUserId: "api",
         lastInteractionAt: now,
         ...(valorContrato !== undefined ? { value: valorContrato } : {}),

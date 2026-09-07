@@ -12,6 +12,31 @@ export const STAGE_LABELS: Record<Stage, string> = {
   LOST: "Perdas",
 };
 
+// Ordem numérica do funil — usada pra API externa não deixar uma
+// automação "regredir" um lead sem querer (ex: um agente de IA reabrindo a
+// mesma conversa e mandando "Análise" de novo pra um lead que já está em
+// "Qualificado"). LOST ("Perdas") fica de fora de propósito: é um estágio
+// especial, alcançável de qualquer lugar, sem posição na ordem.
+export const STAGE_RANK: Partial<Record<Stage, number>> = {
+  NEW: 1,
+  IN_ANALYSIS: 2,
+  QUALIFIED: 3,
+  PROPOSAL: 4,
+  WON: 5,
+};
+
+// true se mudar de `current` pra `incoming` seria uma regressão no funil
+// (voltar pra um estágio numérico anterior). Mover pra LOST nunca é
+// regressão (sempre permitido); sair de LOST pra qualquer estágio numérico
+// também não é (LOST não tem posição na ordem pra comparar).
+export function isStageRegression(current: Stage, incoming: Stage): boolean {
+  if (incoming === "LOST") return false;
+  const currentRank = STAGE_RANK[current];
+  const incomingRank = STAGE_RANK[incoming];
+  if (currentRank === undefined || incomingRank === undefined) return false;
+  return incomingRank < currentRank;
+}
+
 function normalizeForMatch(s: string): string {
   return s
     .normalize("NFD")

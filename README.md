@@ -262,6 +262,18 @@ Pra marcar como fechado, manda `"status": "Sucesso"` junto com
 considerado quando o status é "Sucesso" (é ignorado em qualquer outro
 status) e é **obrigatório** nesse caso, senão a API responde 400.
 
+`nome` só é obrigatório na **criação** (telefone ainda não cadastrado). Numa
+atualização, se não vier, mantém o nome que já estava salvo.
+
+**Proteção contra regressão de status**: a ordem do funil é Nova Conversa
+(1) < Análise (2) < Qualificado (3) < Proposta (4) < Sucesso (5). Numa
+atualização, só aplica a mudança se o novo estágio for maior ou igual ao
+atual — uma tentativa de voltar (ex: Qualificado → Análise) é ignorada
+silenciosamente (sem erro), mas `ultimaInteracaoEm` é atualizado do mesmo
+jeito. "Perdas" é especial: sempre permitido, de/para qualquer estágio, em
+qualquer direção. Isso não vale pra criação (lead novo sempre começa do
+estágio enviado, sem restrição).
+
 **`GET /api/leads/inativos?horas=24`** — leads daquele cliente que ainda
 não fecharam (nem "Sucesso" nem "Perdas") e não têm interação há mais de
 X horas. Pensado pra um workflow do n8n rodando em intervalo disparar
