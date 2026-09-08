@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "Lead" ADD COLUMN "cpf" TEXT;
+ALTER TABLE "Lead" ADD COLUMN "rg" TEXT;
+ALTER TABLE "Lead" ADD COLUMN "endereco" TEXT;
+ALTER TABLE "Lead" ADD COLUMN "estadoCivil" TEXT;
+ALTER TABLE "Lead" ADD COLUMN "profissao" TEXT;
+ALTER TABLE "Lead" ADD COLUMN "observacao" TEXT;
+ALTER TABLE "Lead" ADD COLUMN "formAnswers" JSONB;

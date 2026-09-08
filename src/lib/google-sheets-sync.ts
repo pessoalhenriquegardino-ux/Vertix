@@ -47,6 +47,7 @@ export async function syncLeadsFromGoogleSheet(clientId: string): Promise<SyncRe
         phone: row.phone || undefined,
         source: row.source || undefined,
         notes: row.notes || undefined,
+        formAnswers: Object.keys(row.answers).length > 0 ? row.answers : undefined,
         stage: "NEW" as const,
         createdByUserId: connection.connectedByUserId,
         ...(createdAt && !Number.isNaN(createdAt.getTime()) ? { createdAt } : {}),
@@ -60,7 +61,7 @@ export async function syncLeadsFromGoogleSheet(clientId: string): Promise<SyncRe
         if (!existing) createdCount++;
         await prisma.lead.upsert({
           where: { clientId_externalId: { clientId, externalId: row.externalId } },
-          update: { name: data.name, email: data.email, phone: data.phone, notes: data.notes },
+          update: { name: data.name, email: data.email, phone: data.phone, notes: data.notes, formAnswers: data.formAnswers },
           create: { ...data, externalId: row.externalId },
         });
       } else {

@@ -65,6 +65,7 @@ const metaLeadSchema = z.object({
   source: z.string().optional(),
   createdAt: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  answers: z.record(z.string()).optional(),
 });
 
 // Importa leads vindos de um export de formulário do Meta Lead Ads. Cada
@@ -107,6 +108,7 @@ export async function importMetaLeadsCsv(
       phone: row.phone || undefined,
       source: row.source || undefined,
       notes: row.notes || undefined,
+      formAnswers: row.answers && Object.keys(row.answers).length > 0 ? row.answers : undefined,
       stage: "NEW" as const,
       createdByUserId: session.user.id,
       ...(createdAt && !Number.isNaN(createdAt.getTime()) ? { createdAt } : {}),
@@ -120,7 +122,7 @@ export async function importMetaLeadsCsv(
       if (!existing) createdCount++;
       await prisma.lead.upsert({
         where: { clientId_externalId: { clientId, externalId: row.externalId } },
-        update: { name: data.name, email: data.email, phone: data.phone, notes: data.notes },
+        update: { name: data.name, email: data.email, phone: data.phone, notes: data.notes, formAnswers: data.formAnswers },
         create: { ...data, externalId: row.externalId },
       });
     } else {

@@ -274,6 +274,35 @@ jeito. "Perdas" é especial: sempre permitido, de/para qualquer estágio, em
 qualquer direção. Isso não vale pra criação (lead novo sempre começa do
 estágio enviado, sem restrição).
 
+**Dados cadastrais opcionais**: `cpf`, `rg`, `endereco`, `estadoCivil`,
+`profissao`, `observacao` — todos string, todos opcionais, podem vir um de
+cada vez em chamadas separadas sem apagar os outros (mesmo PATCH parcial
+do `nome`: só sobrescreve o que vier preenchido).
+
+**`GET /api/leads?telefone=X`** — busca o lead atual pelo telefone (a
+mesma chave de identidade usada pro dedupe do POST; `origem` é aceito na
+query por simetria mas não filtra a busca). Devolve todos os campos do
+lead, incluindo os cadastrais acima e `respostasFormulario` (respostas do
+formulário do Meta já interpretadas — ver seção 7.7) e `formAnswers` (as
+respostas cruas, pergunta → resposta). 404 se não encontrar.
+
+### 7.7 Webhook de saída — novo lead pro agente de IA (n8n)
+
+Hoje configurado só pro cliente **Ribeiro & Genro Advocacia**
+(`src/lib/outbound-webhooks.ts`). Toda vez que um lead novo chega pelo
+webhook em tempo real do Meta Lead Ads (seção 7) pra esse cliente
+específico, o sistema dispara um `POST` pra
+`N8N_WEBHOOK_NOVO_LEAD_RIBEIRO_GENRO` com o payload documentado no código.
+As perguntas do formulário são casadas por palavra-chave (não sabemos o
+texto exato até o formulário existir de verdade) — ajuste as listas de
+`keywords` em `extractRibeiroGenroFormAnswers` assim que soubermos a
+redação exata das 4 perguntas.
+
+Variáveis necessárias: `RIBEIRO_GENRO_CLIENT_ID` (id do cliente no banco)
+e `N8N_WEBHOOK_NOVO_LEAD_RIBEIRO_GENRO` (URL do webhook no n8n). Enquanto
+qualquer uma das duas não estiver definida, o envio é ignorado
+silenciosamente.
+
 **`GET /api/leads/inativos?horas=24`** — leads daquele cliente que ainda
 não fecharam (nem "Sucesso" nem "Perdas") e não têm interação há mais de
 X horas. Pensado pra um workflow do n8n rodando em intervalo disparar
@@ -294,6 +323,7 @@ Na Vercel, configure em **Project Settings → Environment Variables**:
 - `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN` (se for usar a integração da seção 7)
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (notificações push)
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `CRON_SECRET` (se for usar a integração da seção 7.5)
+- `RIBEIRO_GENRO_CLIENT_ID`, `N8N_WEBHOOK_NOVO_LEAD_RIBEIRO_GENRO` (se for usar o webhook de saída da seção 7.7)
 
 O `build` (`npm run build`) já roda `prisma generate` automaticamente. Antes
 do primeiro deploy (ou após mudar o schema), rode as migrations apontando

@@ -117,6 +117,10 @@ export type NormalizedMetaLead = {
   source: string;
   createdAt: string | null; // ISO
   notes: string;
+  // pergunta (cabeçalho cru da coluna) → resposta — mesma ideia do
+  // "answers" de mapLeadgenFieldData (lib/meta.ts), pra guardar as
+  // respostas do formulário de forma estruturada em Lead.formAnswers.
+  answers: Record<string, string>;
 };
 
 export function mapMetaLeadsRows(rawRows: Record<string, string>[], detection: MetaLeadsDetection): NormalizedMetaLead[] {
@@ -142,9 +146,13 @@ export function mapMetaLeadsRows(rawRows: Record<string, string>[], detection: M
       if (platformLabel) notesLines.push(`Origem: ${platformLabel}`);
       if (notesLines.length > 0) notesLines.push("");
 
+      const answers: Record<string, string> = {};
       for (const q of detection.questionCols) {
         const answer = row[q]?.trim();
-        if (answer) notesLines.push(`${humanizeQuestion(q)}: ${answer}`);
+        if (answer) {
+          notesLines.push(`${humanizeQuestion(q)}: ${answer}`);
+          answers[q] = answer;
+        }
       }
 
       return {
@@ -155,6 +163,7 @@ export function mapMetaLeadsRows(rawRows: Record<string, string>[], detection: M
         source,
         createdAt,
         notes: notesLines.join("\n").trim() || null,
+        answers,
       } as NormalizedMetaLead;
     })
     .filter((r): r is NormalizedMetaLead => r !== null);

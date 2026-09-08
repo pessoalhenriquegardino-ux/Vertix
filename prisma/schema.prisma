@@ -235,6 +235,24 @@ model Lead {
   assignedToUserId String?
   notes            String?
 
+  // Dados contratuais/cadastrais opcionais — preenchidos aos poucos, por
+  // uma automação externa (ex: agente de IA no WhatsApp via n8n) chamando
+  // POST /api/leads. Cada campo só é sobrescrito quando vem preenchido na
+  // chamada; se vier vazio/ausente, o valor já salvo é mantido.
+  cpf         String?
+  rg          String?
+  endereco    String?
+  estadoCivil String?
+  profissao   String?
+  observacao  String? @db.Text
+
+  // Respostas do formulário instantâneo do Meta Lead Ads, cruas (pergunta
+  // → resposta), além de nome/email/telefone (que já viram campos
+  // próprios). Guardado à parte de "notes" pra não misturar com
+  // observações manuais, e pra dar pra API externa devolver as respostas
+  // de forma estruturada (ver GET /api/leads).
+  formAnswers Json?
+
   // id do lead na origem (ex.: Meta Lead Ads) — usado para não duplicar
   // quando o mesmo export/período é importado mais de uma vez.
   externalId String?

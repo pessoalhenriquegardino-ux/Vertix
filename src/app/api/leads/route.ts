@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Lead } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authenticateApiRequest } from "@/lib/api-auth";
 import { normalizePhoneDigits } from "@/lib/whatsapp";
 import { parseStageInput, isStageRegression } from "@/lib/leads";
 import { notifyClientNewLead } from "@/lib/push";
+import { extractRibeiroGenroFormAnswers } from "@/lib/outbound-webhooks";
 
 // Recebe leads de automações externas autenticadas por API Key (o
 // primeiro caso de uso: um agente de IA no WhatsApp de um cliente,
@@ -17,6 +19,13 @@ import { notifyClientNewLead } from "@/lib/push";
 // 'nome' também é opcional aqui — só é exigido de verdade na criação de um
 // lead novo (checado depois de saber se o telefone já existe ou não);
 // numa atualização, se não vier, mantém o nome que já estava salvo.
+//
+// cpf/rg/endereco/estadoCivil/profissao/observacao: dados cadastrais
+// opcionais, preenchidos aos poucos. Isso já É um PATCH parcial — cada
+// chamada só sobrescreve os campos que vierem preenchidos; o resto do
+// registro permanece intacto (mesmo padrão do 'nome' opcional acima). Não
+// existe um método HTTP PATCH separado: o mesmo POST cobre criar e
+// atualizar parcialmente, consistente com o resto do endpoint.
 const bodySchema = z.object({
   nome: z.string().trim().min(1, "Campo 'nome' não pode ser vazio.").optional(),
   telefone: z.string().trim().min(1).optional(),
@@ -29,7 +38,42 @@ const bodySchema = z.object({
     .number({ invalid_type_error: "Campo 'valorContrato' deve ser um número." })
     .min(0, "Campo 'valorContrato' não pode ser negativo.")
     .optional(),
+  cpf: z.string().trim().min(1, "Campo 'cpf' não pode ser vazio.").optional(),
+  rg: z.string().trim().min(1, "Campo 'rg' não pode ser vazio.").optional(),
+  endereco: z.string().trim().min(1, "Campo 'endereco' não pode ser vazio.").optional(),
+  estadoCivil: z.string().trim().min(1, "Campo 'estadoCivil' não pode ser vazio.").optional(),
+  profissao: z.string().trim().min(1, "Campo 'profissao' não pode ser vazio.").optional(),
+  observacao: z.string().trim().min(1, "Campo 'observacao' não pode ser vazio.").optional(),
 });
+
+function serializeLead(lead: Lead) {
+  return {
+    id: lead.id,
+    nome: lead.name,
+    telefone: lead.phone,
+    email: lead.email,
+    origem: lead.source,
+    status: lead.stage,
+    valorContrato: lead.value !== null ? Number(lead.value) : null,
+    cpf: lead.cpf,
+    rg: lead.rg,
+    endereco: lead.endereco,
+    estadoCivil: lead.estadoCivil,
+    profissao: lead.profissao,
+    observacao: lead.observacao,
+    // respostas do formulário do Meta, já interpretadas (ver item 1 da
+    // integração com a Ribeiro & Genro) — vem tudo null se o lead não tiver
+    // vindo de um formulário do Meta, ou se as perguntas não baterem com
+    // as palavras-chave configuradas.
+    respostasFormulario: extractRibeiroGenroFormAnswers(lead.formAnswers as Record<string, string> | null),
+    // respostas cruas (pergunta → resposta), como vieram do formulário —
+    // útil se a automação precisar de alguma pergunta que ainda não tem
+    // um campo estruturado próprio.
+    formAnswers: lead.formAnswers ?? null,
+    ultimaInteracaoEm: lead.lastInteractionAt,
+    criadoEm: lead.createdAt,
+  };
+}
 
 export async function POST(req: NextRequest) {
   const auth = await authenticateApiRequest(req);
@@ -88,7 +132,17 @@ export async function POST(req: NextRequest) {
   // continua ao longo do tempo vira um só lead, não vários).
   const existing = await prisma.lead.findFirst({
     where: { clientId: client.id, phone: normalizedPhone },
-    select: { id: true, name: true, stage: true },
+    select: {
+      id: true,
+      name: true,
+      stage: true,
+      cpf: true,
+      rg: true,
+      endereco: true,
+      estadoCivil: true,
+      profissao: true,
+      observacao: true,
+    },
   });
 
   // 'nome' só é obrigatório de verdade na criação — numa atualização, se
@@ -118,6 +172,12 @@ export async function POST(req: NextRequest) {
         source: origem,
         stage,
         lastInteractionAt: now,
+        cpf: parsed.data.cpf || existing.cpf,
+        rg: parsed.data.rg || existing.rg,
+        endereco: parsed.data.endereco || existing.endereco,
+        estadoCivil: parsed.data.estadoCivil || existing.estadoCivil,
+        profissao: parsed.data.profissao || existing.profissao,
+        observacao: parsed.data.observacao || existing.observacao,
         ...(valorContrato !== undefined ? { value: valorContrato } : {}),
       },
     });
@@ -134,6 +194,12 @@ export async function POST(req: NextRequest) {
         stage: intendedStage,
         createdByUserId: "api",
         lastInteractionAt: now,
+        cpf: parsed.data.cpf,
+        rg: parsed.data.rg,
+        endereco: parsed.data.endereco,
+        estadoCivil: parsed.data.estadoCivil,
+        profissao: parsed.data.profissao,
+        observacao: parsed.data.observacao,
         ...(valorContrato !== undefined ? { value: valorContrato } : {}),
       },
     });
@@ -143,17 +209,37 @@ export async function POST(req: NextRequest) {
     await notifyClientNewLead(client.id, lead.name, origem);
   }
 
-  return NextResponse.json(
-    {
-      id: lead.id,
-      nome: lead.name,
-      telefone: lead.phone,
-      origem: lead.source,
-      status: lead.stage,
-      valorContrato: lead.value !== null ? Number(lead.value) : null,
-      ultimaInteracaoEm: lead.lastInteractionAt,
-      criadoEm: lead.createdAt,
-    },
-    { status: created ? 201 : 200 }
-  );
+  return NextResponse.json(serializeLead(lead), { status: created ? 201 : 200 });
+}
+
+// Consulta um lead pelo telefone (chave de identidade usada pelo POST pra
+// dedupe). 'origem' é aceito na query por simetria com o POST, mas não é
+// usado como filtro — a busca é sempre por telefone dentro do cliente
+// autenticado pela API Key.
+export async function GET(req: NextRequest) {
+  const auth = await authenticateApiRequest(req);
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+  const { client } = auth;
+
+  const telefoneParam = req.nextUrl.searchParams.get("telefone")?.trim();
+  if (!telefoneParam) {
+    return NextResponse.json({ error: "Parâmetro 'telefone' é obrigatório na query string." }, { status: 400 });
+  }
+
+  const normalizedPhone = normalizePhoneDigits(telefoneParam);
+  if (!normalizedPhone) {
+    return NextResponse.json({ error: "Parâmetro 'telefone' não parece um número válido." }, { status: 400 });
+  }
+
+  const lead = await prisma.lead.findFirst({
+    where: { clientId: client.id, phone: normalizedPhone },
+  });
+
+  if (!lead) {
+    return NextResponse.json({ error: "Nenhum lead encontrado com esse telefone." }, { status: 404 });
+  }
+
+  return NextResponse.json(serializeLead(lead));
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyMetaWebhookSignature, decryptToken, fetchLeadgenData, mapLeadgenFieldData } from "@/lib/meta";
 import { notifyClientNewLead } from "@/lib/push";
+import { sendRibeiroGenroNewLeadWebhook } from "@/lib/outbound-webhooks";
 
 // Handshake de verificação que o Meta faz uma vez, ao configurar o webhook.
 export async function GET(req: NextRequest) {
@@ -62,7 +63,7 @@ async function processLeadgenEvent(pageId: string, leadgenId: string) {
 
   const pageAccessToken = decryptToken(connection.encryptedToken);
   const leadgen = await fetchLeadgenData(leadgenId, pageAccessToken);
-  const { name, email, phone, questionLines } = mapLeadgenFieldData(leadgen.field_data ?? []);
+  const { name, email, phone, questionLines, answers } = mapLeadgenFieldData(leadgen.field_data ?? []);
 
   if (!name) return; // sem nome, não dá pra criar um lead útil
 
@@ -74,9 +75,9 @@ async function processLeadgenEvent(pageId: string, leadgenId: string) {
     select: { id: true },
   });
 
-  await prisma.lead.upsert({
+  const lead = await prisma.lead.upsert({
     where: { clientId_externalId: { clientId: connection.clientId, externalId: leadgenId } },
-    update: { name, email: email ?? undefined, phone: phone ?? undefined, notes },
+    update: { name, email: email ?? undefined, phone: phone ?? undefined, notes, formAnswers: answers },
     create: {
       clientId: connection.clientId,
       externalId: leadgenId,
@@ -86,6 +87,7 @@ async function processLeadgenEvent(pageId: string, leadgenId: string) {
       source: `Meta Ads · ${connection.pageName}`,
       stage: "NEW",
       notes,
+      formAnswers: answers,
       createdByUserId: connection.connectedByUserId,
       ...(createdAt && !Number.isNaN(createdAt.getTime()) ? { createdAt } : {}),
     },
@@ -93,5 +95,10 @@ async function processLeadgenEvent(pageId: string, leadgenId: string) {
 
   if (!existing) {
     await notifyClientNewLead(connection.clientId, name, `Meta Ads · ${connection.pageName}`);
+
+    // dispara webhook de saída pro n8n (agente de IA) — hoje só configurado
+    // pro cliente Ribeiro & Genro Advocacia; a função já verifica se é o
+    // cliente certo e se a env var da URL está configurada antes de enviar.
+    await sendRibeiroGenroNewLeadWebhook(lead, answers);
   }
 }

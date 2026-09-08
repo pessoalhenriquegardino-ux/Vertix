@@ -174,6 +174,10 @@ export function mapLeadgenFieldData(fieldData: MetaLeadFieldData[]) {
   let email: string | null = null;
   let phone: string | null = null;
   const questionLines: string[] = [];
+  // pergunta (nome de campo cru, como veio do Meta) → resposta — usado pra
+  // guardar as respostas do formulário de forma estruturada (Lead.formAnswers),
+  // além do texto formatado em questionLines (que vira "notes").
+  const answers: Record<string, string> = {};
 
   for (const f of fieldData) {
     const norm = normalizeKey(f.name);
@@ -183,8 +187,11 @@ export function mapLeadgenFieldData(fieldData: MetaLeadFieldData[]) {
     if (NAME_ALIASES.includes(norm)) name = value;
     else if (EMAIL_ALIASES.includes(norm)) email = value;
     else if (PHONE_ALIASES.includes(norm)) phone = value;
-    else questionLines.push(`${humanizeQuestion(f.name)}: ${value}`);
+    else {
+      questionLines.push(`${humanizeQuestion(f.name)}: ${value}`);
+      answers[f.name] = value;
+    }
   }
 
-  return { name, email, phone, questionLines };
+  return { name, email, phone, questionLines, answers };
 }
