@@ -6,7 +6,7 @@ import { authenticateApiRequest } from "@/lib/api-auth";
 import { normalizePhoneDigits } from "@/lib/whatsapp";
 import { parseStageInput, isStageRegression } from "@/lib/leads";
 import { notifyClientNewLead } from "@/lib/push";
-import { extractRibeiroGenroFormAnswers } from "@/lib/outbound-webhooks";
+import { extractStructuredFormAnswers } from "@/lib/outbound-webhooks";
 
 // Recebe leads de automações externas autenticadas por API Key (o
 // primeiro caso de uso: um agente de IA no WhatsApp de um cliente,
@@ -61,11 +61,10 @@ function serializeLead(lead: Lead) {
     estadoCivil: lead.estadoCivil,
     profissao: lead.profissao,
     observacao: lead.observacao,
-    // respostas do formulário do Meta, já interpretadas (ver item 1 da
-    // integração com a Ribeiro & Genro) — vem tudo null se o lead não tiver
-    // vindo de um formulário do Meta, ou se as perguntas não baterem com
-    // as palavras-chave configuradas.
-    respostasFormulario: extractRibeiroGenroFormAnswers(lead.formAnswers as Record<string, string> | null),
+    // respostas do formulário do Meta, já interpretadas com nomes de
+    // campo limpos — só preenchido pra clientes com mapeamento configurado
+    // (ver src/lib/outbound-webhooks.ts); null pros demais.
+    respostasFormulario: extractStructuredFormAnswers(lead.clientId, lead.formAnswers as Record<string, string> | null),
     // respostas cruas (pergunta → resposta), como vieram do formulário —
     // útil se a automação precisar de alguma pergunta que ainda não tem
     // um campo estruturado próprio.
@@ -219,7 +218,7 @@ function serializeLeadSummary(lead: Lead) {
     telefone: lead.phone,
     status: lead.stage,
     origem: lead.source,
-    respostasFormulario: extractRibeiroGenroFormAnswers(lead.formAnswers as Record<string, string> | null),
+    respostasFormulario: extractStructuredFormAnswers(lead.clientId, lead.formAnswers as Record<string, string> | null),
     formAnswers: lead.formAnswers ?? null,
     ultimaInteracaoEm: lead.lastInteractionAt,
     criadoEm: lead.createdAt,

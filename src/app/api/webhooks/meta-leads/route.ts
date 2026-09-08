@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyMetaWebhookSignature, decryptToken, fetchLeadgenData, mapLeadgenFieldData } from "@/lib/meta";
 import { notifyClientNewLead } from "@/lib/push";
-import { sendRibeiroGenroNewLeadWebhook } from "@/lib/outbound-webhooks";
+import { sendNewLeadOutboundWebhook } from "@/lib/outbound-webhooks";
 
 // Handshake de verificação que o Meta faz uma vez, ao configurar o webhook.
 export async function GET(req: NextRequest) {
@@ -96,9 +96,9 @@ async function processLeadgenEvent(pageId: string, leadgenId: string) {
   if (!existing) {
     await notifyClientNewLead(connection.clientId, name, `Meta Ads · ${connection.pageName}`);
 
-    // dispara webhook de saída pro n8n (agente de IA) — hoje só configurado
-    // pro cliente Ribeiro & Genro Advocacia; a função já verifica se é o
-    // cliente certo e se a env var da URL está configurada antes de enviar.
-    await sendRibeiroGenroNewLeadWebhook(lead, answers);
+    // dispara webhook de saída pro n8n (agente de IA), se esse cliente
+    // tiver mapeamento configurado — a função já verifica isso e se a env
+    // var da URL está definida antes de enviar.
+    await sendNewLeadOutboundWebhook(lead, answers);
   }
 }

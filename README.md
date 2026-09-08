@@ -296,20 +296,32 @@ Cada item vem com `id`, `nome`, `telefone`, `status`, `origem`,
 
 ### 7.7 Webhook de saída — novo lead pro agente de IA (n8n)
 
-Hoje configurado só pro cliente **Ribeiro & Genro Advocacia**
-(`src/lib/outbound-webhooks.ts`). Toda vez que um lead novo chega pelo
-webhook em tempo real do Meta Lead Ads (seção 7) pra esse cliente
-específico, o sistema dispara um `POST` pra
-`N8N_WEBHOOK_NOVO_LEAD_RIBEIRO_GENRO` com o payload documentado no código.
-As perguntas do formulário são casadas por palavra-chave (não sabemos o
-texto exato até o formulário existir de verdade) — ajuste as listas de
-`keywords` em `extractRibeiroGenroFormAnswers` assim que soubermos a
-redação exata das 4 perguntas.
+Mapeamento por cliente, configurado em `CLIENT_FORM_MAPPINGS` dentro de
+`src/lib/outbound-webhooks.ts` — cada entrada tem o `clientId`, o nome da
+env var da URL do webhook, e uma função que interpreta as respostas do
+formulário daquele cliente (o texto das perguntas varia por cliente, então
+o mapeamento também). Hoje só tem uma entrada configurada:
 
-Variáveis necessárias: `RIBEIRO_GENRO_CLIENT_ID` (id do cliente no banco)
-e `N8N_WEBHOOK_NOVO_LEAD_RIBEIRO_GENRO` (URL do webhook no n8n). Enquanto
-qualquer uma das duas não estiver definida, o envio é ignorado
-silenciosamente.
+- **Dra. Anelise - Auxílio Acidente** (`cmtll3i6p000813gxquvnvmhn`) →
+  env var `N8N_WEBHOOK_NOVO_LEAD_ANELISE_ACIDENTE`. Formulário simplificado
+  (sim/não): `sofreuAcidente`, `estavaRegistrado`, `recebeuAuxilioDoenca`,
+  `ficouComSequela`.
+
+Toda vez que um lead novo chega pelo webhook em tempo real do Meta Lead
+Ads (seção 7) pra um cliente com mapeamento configurado, o sistema dispara
+um `POST` pra URL da env var correspondente, com `leadId`, `nome`,
+`telefone`, `status`, `origem` (a fonte real do lead, ex: nome da
+Página/campanha) e `formAnswers` (as 4 respostas já como booleano).
+
+As perguntas são casadas por palavra-chave, não por texto exato — pequenas
+variações de redação ainda funcionam, mas troque o formulário todo (tipo
+de pergunta, não só palavras) exige ajustar as `keywords` na função de
+extração do cliente em `outbound-webhooks.ts`.
+
+Pra adicionar um novo cliente nesse webhook: acrescente uma entrada em
+`CLIENT_FORM_MAPPINGS` com o `clientId`, o nome da env var e a função de
+extração. Enquanto a env var da URL não estiver definida no ambiente, o
+envio pra aquele cliente é ignorado silenciosamente.
 
 **`GET /api/leads/inativos?horas=24`** — leads daquele cliente que ainda
 não fecharam (nem "Sucesso" nem "Perdas") e não têm interação há mais de
@@ -331,7 +343,7 @@ Na Vercel, configure em **Project Settings → Environment Variables**:
 - `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN` (se for usar a integração da seção 7)
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (notificações push)
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `CRON_SECRET` (se for usar a integração da seção 7.5)
-- `RIBEIRO_GENRO_CLIENT_ID`, `N8N_WEBHOOK_NOVO_LEAD_RIBEIRO_GENRO` (se for usar o webhook de saída da seção 7.7)
+- `N8N_WEBHOOK_NOVO_LEAD_ANELISE_ACIDENTE` (se for usar o webhook de saída da seção 7.7 — o clientId já fica fixo no código, em `CLIENT_FORM_MAPPINGS`)
 
 O `build` (`npm run build`) já roda `prisma generate` automaticamente. Antes
 do primeiro deploy (ou após mudar o schema), rode as migrations apontando
