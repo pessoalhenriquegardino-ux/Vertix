@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notifyClientNewLead } from "@/lib/push";
+import { normalizePhoneDigits } from "@/lib/whatsapp";
 
 // Endpoint genérico de recebimento de leads via webhook (Zapier, Make,
 // n8n, ou qualquer automação que consiga fazer um POST). Alternativa que
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
     clientId: client.id,
     name,
     email: email || undefined,
-    phone: phone || undefined,
+    phone: phone ? (normalizePhoneDigits(phone) ?? phone) : undefined,
     source: source ? `Automação · ${source}` : "Automação (Zapier/Make/n8n)",
     stage: "NEW" as const,
     notes: notesLines.length > 0 ? notesLines.join("\n") : undefined,

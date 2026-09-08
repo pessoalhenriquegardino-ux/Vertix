@@ -7,6 +7,7 @@ import { requireClientAccess } from "@/lib/require-access";
 import type { ImportResult } from "@/actions/csv-import";
 import { STAGES } from "@/lib/leads";
 import { notifyClientNewLead } from "@/lib/push";
+import { normalizePhoneDigits } from "@/lib/whatsapp";
 
 const csvRowSchema = z.object({
   name: z.string().min(1),
@@ -40,7 +41,7 @@ export async function importLeadsCsv(clientId: string, basePath: string, rows: u
     data: validRows.map((row) => ({
       clientId,
       name: row.name,
-      phone: row.phone || undefined,
+      phone: row.phone ? (normalizePhoneDigits(row.phone) ?? row.phone) : undefined,
       email: row.email || undefined,
       source: row.source || undefined,
       stage: row.stage ?? "NEW",
@@ -105,7 +106,7 @@ export async function importMetaLeadsCsv(
       clientId,
       name: row.name,
       email: row.email || undefined,
-      phone: row.phone || undefined,
+      phone: row.phone ? (normalizePhoneDigits(row.phone) ?? row.phone) : undefined,
       source: row.source || undefined,
       notes: row.notes || undefined,
       formAnswers: row.answers && Object.keys(row.answers).length > 0 ? row.answers : undefined,

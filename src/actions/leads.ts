@@ -8,6 +8,7 @@ import type { ActionState } from "@/actions/clients";
 import { STAGES } from "@/lib/leads";
 import { notifyClientNewLead } from "@/lib/push";
 import { syncLeadStatusToSheet } from "@/lib/google-sheets-sync";
+import { normalizePhoneDigits } from "@/lib/whatsapp";
 
 const leadSchema = z.object({
   name: z.string().min(2, "Informe o nome do lead."),
@@ -43,7 +44,7 @@ export async function createLead(
     data: {
       clientId,
       name: parsed.data.name,
-      phone: parsed.data.phone,
+      phone: parsed.data.phone ? (normalizePhoneDigits(parsed.data.phone) ?? parsed.data.phone) : undefined,
       email: parsed.data.email || undefined,
       source: parsed.data.source,
       value: parsed.data.value,

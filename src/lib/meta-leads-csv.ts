@@ -3,6 +3,8 @@
 // (id, created_time, campanha, formulário, plataforma...) + colunas
 // dinâmicas com as perguntas do formulário, que variam por anúncio/cliente.
 
+import { normalizePhoneDigits } from "@/lib/whatsapp";
+
 function normalizeKey(s: string): string {
   return s
     .normalize("NFD")
@@ -159,7 +161,11 @@ export function mapMetaLeadsRows(rawRows: Record<string, string>[], detection: M
         externalId: detection.idCol ? row[detection.idCol]?.trim() || null : null,
         name,
         email: detection.emailCol ? row[detection.emailCol]?.trim() || null : null,
-        phone: detection.phoneCol ? row[detection.phoneCol]?.trim() || null : null,
+        phone: (() => {
+          const raw = detection.phoneCol ? row[detection.phoneCol]?.trim() : "";
+          if (!raw) return null;
+          return normalizePhoneDigits(raw) ?? raw;
+        })(),
         source,
         createdAt,
         notes: notesLines.join("\n").trim() || null,

@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { normalizePhoneDigits } from "@/lib/whatsapp";
 
 const GRAPH_VERSION = "v21.0";
 const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`;
@@ -186,7 +187,7 @@ export function mapLeadgenFieldData(fieldData: MetaLeadFieldData[]) {
 
     if (NAME_ALIASES.includes(norm)) name = value;
     else if (EMAIL_ALIASES.includes(norm)) email = value;
-    else if (PHONE_ALIASES.includes(norm)) phone = value;
+    else if (PHONE_ALIASES.includes(norm)) phone = normalizePhoneDigits(value) ?? value;
     else {
       questionLines.push(`${humanizeQuestion(f.name)}: ${value}`);
       answers[f.name] = value;
