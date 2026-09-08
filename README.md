@@ -286,6 +286,14 @@ lead, incluindo os cadastrais acima e `respostasFormulario` (respostas do
 formulário do Meta já interpretadas — ver seção 7.7) e `formAnswers` (as
 respostas cruas, pergunta → resposta). 404 se não encontrar.
 
+**`GET /api/leads?status=X&origem=Y`** (sem `telefone`) — modo lista: array
+de leads do cliente filtrados por status e/ou origem (os dois opcionais e
+combináveis; sem nenhum filtro, lista os mais recentes, até 500). Pensado
+pra processar em lote leads antigos que nunca vão receber o webhook de
+saída da seção 7.7 (que só dispara em leads novos a partir de agora).
+Cada item vem com `id`, `nome`, `telefone`, `status`, `origem`,
+`respostasFormulario` e `formAnswers`.
+
 ### 7.7 Webhook de saída — novo lead pro agente de IA (n8n)
 
 Hoje configurado só pro cliente **Ribeiro & Genro Advocacia**

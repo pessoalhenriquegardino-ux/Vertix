@@ -212,10 +212,33 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(serializeLead(lead), { status: created ? 201 : 200 });
 }
 
-// Consulta um lead pelo telefone (chave de identidade usada pelo POST pra
-// dedupe). 'origem' é aceito na query por simetria com o POST, mas não é
-// usado como filtro — a busca é sempre por telefone dentro do cliente
-// autenticado pela API Key.
+function serializeLeadSummary(lead: Lead) {
+  return {
+    id: lead.id,
+    nome: lead.name,
+    telefone: lead.phone,
+    status: lead.stage,
+    origem: lead.source,
+    respostasFormulario: extractRibeiroGenroFormAnswers(lead.formAnswers as Record<string, string> | null),
+    formAnswers: lead.formAnswers ?? null,
+    ultimaInteracaoEm: lead.lastInteractionAt,
+    criadoEm: lead.createdAt,
+  };
+}
+
+const MAX_LIST_RESULTS = 500;
+
+// Dois modos, no mesmo GET:
+//
+// 1) ?telefone=X → busca um lead único (chave de identidade usada pelo
+//    POST pra dedupe). 'origem' é aceito na query por simetria mas não
+//    filtra — a busca é sempre por telefone dentro do cliente autenticado.
+//
+// 2) sem 'telefone' → modo lista, filtrando por 'status' e/ou 'origem'
+//    (os dois opcionais e combináveis; sem nenhum filtro, lista os leads
+//    mais recentes do cliente, até MAX_LIST_RESULTS). Pensado pra
+//    processar em lote leads antigos que nunca vão receber o webhook de
+//    saída (ele só dispara em leads novos a partir de agora).
 export async function GET(req: NextRequest) {
   const auth = await authenticateApiRequest(req);
   if ("error" in auth) {
@@ -224,22 +247,43 @@ export async function GET(req: NextRequest) {
   const { client } = auth;
 
   const telefoneParam = req.nextUrl.searchParams.get("telefone")?.trim();
-  if (!telefoneParam) {
-    return NextResponse.json({ error: "Parâmetro 'telefone' é obrigatório na query string." }, { status: 400 });
+
+  if (telefoneParam) {
+    const normalizedPhone = normalizePhoneDigits(telefoneParam);
+    if (!normalizedPhone) {
+      return NextResponse.json({ error: "Parâmetro 'telefone' não parece um número válido." }, { status: 400 });
+    }
+
+    const lead = await prisma.lead.findFirst({
+      where: { clientId: client.id, phone: normalizedPhone },
+    });
+
+    if (!lead) {
+      return NextResponse.json({ error: "Nenhum lead encontrado com esse telefone." }, { status: 404 });
+    }
+
+    return NextResponse.json(serializeLead(lead));
   }
 
-  const normalizedPhone = normalizePhoneDigits(telefoneParam);
-  if (!normalizedPhone) {
-    return NextResponse.json({ error: "Parâmetro 'telefone' não parece um número válido." }, { status: 400 });
-  }
+  // modo lista
+  const statusParam = req.nextUrl.searchParams.get("status")?.trim();
+  const origemParam = req.nextUrl.searchParams.get("origem")?.trim();
 
-  const lead = await prisma.lead.findFirst({
-    where: { clientId: client.id, phone: normalizedPhone },
+  const where: { clientId: string; stage?: ReturnType<typeof parseStageInput>; source?: string } = {
+    clientId: client.id,
+  };
+  if (statusParam) where.stage = parseStageInput(statusParam);
+  if (origemParam) where.source = origemParam;
+
+  const leads = await prisma.lead.findMany({
+    where,
+    orderBy: { createdAt: "asc" }, // mais antigos primeiro — útil pra processar backlog em ordem
+    take: MAX_LIST_RESULTS,
   });
 
-  if (!lead) {
-    return NextResponse.json({ error: "Nenhum lead encontrado com esse telefone." }, { status: 404 });
-  }
-
-  return NextResponse.json(serializeLead(lead));
+  return NextResponse.json({
+    total: leads.length,
+    truncado: leads.length === MAX_LIST_RESULTS,
+    leads: leads.map(serializeLeadSummary),
+  });
 }
